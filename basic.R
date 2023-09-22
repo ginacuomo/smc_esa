@@ -158,12 +158,13 @@ age_min <- 1
 age_max <- 5 * 365
 
 # test with only three districts for now
-n_dist <- 3
+n_dist <- length(names)
 df <- matrix(NA, ncol = 36, nrow = 0)
 for(i in 1:n_dist) {
+  message(paste("district", i, "of", n_dist, "- named", names[i]))
   out <- run_counterfactual(population = human_population,
                             sim_length = sim_length,
-                            reps = 2, 
+                            reps = 20, 
                             g0 = params$g0[i],
                             g1 = params$g1[i],
                             g2 = params$g2[i],
@@ -183,9 +184,10 @@ for(i in 1:n_dist) {
 # now repeat for SMC params
 df_smc <- matrix(NA, ncol = 37, nrow = 0)
 for(i in 1:n_dist) {
+  message(paste("district number", i, "named", names[i]))
   out <- run_with_smc(population = human_population,
                       sim_length = sim_length,
-                      reps = 2, 
+                      reps = 20, 
                       g0 = params$g0[i],
                       g1 = params$g1[i],
                       g2 = params$g2[i],
@@ -203,6 +205,10 @@ for(i in 1:n_dist) {
   colnames(df_smc) <- names(out)
   df_smc <- rbind(df_smc, out)
 }
+
+saveRDS(df, "output/df_counterfactual_20")
+saveRDS(df_smc, "output/df_smc_20")
+
 
 # now write code to compare the impact of SMC in each region
 
