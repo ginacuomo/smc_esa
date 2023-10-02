@@ -220,7 +220,3 @@ saveRDS(df_smc, "output/df_smc_20")
 
 
 
-
-
-
-
