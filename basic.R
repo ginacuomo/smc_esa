@@ -209,6 +209,7 @@ for(i in 1:n_dist) {
 saveRDS(df, "output/df_counterfactual_20")
 saveRDS(df_smc, "output/df_smc_20")
 
+district_eir <- data.frame(names = names, eir = params$eir)
 
 # now write code to compare the impact of SMC in each region
 
@@ -217,6 +218,107 @@ saveRDS(df_smc, "output/df_smc_20")
 # children under 5, number of SMC doses delivered, prevalence and then estimate %age of cases averted annually
 # following SMC implementation
 
+df_summary <- df %>% 
+  dplyr::mutate(year = ceiling(timestep/365)) %>%
+  dplyr::filter(year > 1) %>%
+  dplyr::group_by(year, district, repetition) %>%
+  dplyr::reframe(total_cases = sum(n_inc_clinical_1_1825),
+                 total_incidence = sum(n_inc_clinical_1_1825/n_1_1825))
 
+df_summary_smc <- df_smc %>% 
+  dplyr::mutate(year = ceiling(timestep/365)) %>%
+  dplyr::filter(year > 1) %>%
+  dplyr::group_by(year, district, repetition) %>%
+  dplyr::reframe(total_cases_smc = sum(n_inc_clinical_1_1825),
+                 total_incidence_smc = sum(n_inc_clinical_1_1825/n_1_1825))
+
+quantile_95 <- function(x) {
+  quantile(x, probs = c(0.025, 0.5, 0.975))
+}
+
+df_comb <- dplyr::full_join(df_summary, df_summary_smc, by = c("year", "district", "repetition")) %>%
+  dplyr::mutate(cases_averted = total_cases - total_cases_smc,
+                proportion_averted = ((total_cases - total_cases_smc)/total_cases)*100,
+                per_child = total_incidence - total_incidence_smc) %>%
+  dplyr::group_by(year, district) %>%
+  dplyr::reframe(averted_2.5 = quantile_95(cases_averted)[1],
+                 averted_50 = quantile_95(cases_averted)[2],
+                 averted_97.5 = quantile_95(cases_averted)[3], 
+                 proportion_2.5 = quantile_95(proportion_averted)[1],
+                 proportion_50 = quantile_95(proportion_averted)[2],
+                 proportion_97.5 = quantile_95(proportion_averted)[3],
+                 per_child_2.5 = quantile_95(per_child)[1],
+                 per_child_50 = quantile_95(per_child)[2],
+                 per_child_97.5 = quantile_95(per_child)[3]) %>%
+  dplyr::arrange(district, year)
+
+# look more closely at the differences between repetitions
+## differences are due to mistiming for some districts and not others
+df_smc %>% dplyr::filter(district == "Kotido") %>%
+  dplyr::mutate(incidence = n_inc_clinical_1_1825/n_1_1825) %>%
+  ggplot() + geom_line(aes(x = timestep, y = incidence, group = repetition), alpha = 0.1) + 
+  theme_bw() + geom_vline(xintercept = smc_dates, lty = 2)
+
+## replace figure with this from Kotido  
+kotido_smc <- df_smc %>% dplyr::filter(district == "Kotido") %>%
+  dplyr::mutate(incidence = n_inc_clinical_1_1825/n_1_1825,
+                scenario = "SMC",
+                year = ceiling(timestep/365)) %>%
+  dplyr::group_by(year) %>% 
+  dplyr::mutate(total_cases = sum(n_inc_clinical_1_1825)) %>%
+  dplyr::select(timestep, n_inc_clinical_1_1825, n_1_1825, incidence,
+                repetition, district, scenario, year, total_cases)
+kotido_counterfactual <- df %>% dplyr::filter(district == "Kotido") %>%
+  dplyr::mutate(incidence = n_inc_clinical_1_1825/n_1_1825,
+                scenario = "no SMC",
+                year = ceiling(timestep/365)) %>%
+  dplyr::group_by(year) %>% 
+  dplyr::mutate(total_cases = sum(n_inc_clinical_1_1825)) %>%
+  dplyr::select(timestep, n_inc_clinical_1_1825, n_1_1825, incidence,
+                repetition, district, scenario, year, total_cases)
+
+kotido <- rbind(kotido_smc, kotido_counterfactual) %>%
+  dplyr::group_by(scenario, timestep) %>%
+  dplyr::reframe(incidence_2.5 = quantile_95(incidence)[1],
+                 incidence_50 = quantile_95(incidence)[2],
+                 incidence_97.5 = quantile_95(incidence)[3])
+ggplot(kotido) + geom_line(aes(x = timestep, y = incidence_50, col = scenario)) + 
+  geom_ribbon(aes(x = timestep, ymin = incidence_2.5, ymax = incidence_97.5, fill = scenario), 
+              alpha = 0.2) +
+  theme_bw() + labs(x = "Time (days)", y = "Clinical infection incidence/day (under 5s)") +
+  geom_vline(xintercept = smc_dates, lty = 2) + 
+  guides(fill = guide_legend("Intervention"),
+         colour = guide_legend("Intervention"))
+ggsave("output/kotido.png", dpi = 500, width = 20, height = 10, units = "cm")
+
+kotido_summary <- kotido_counterfactual %>% 
+  dplyr::mutate(year = ceiling(timestep/365)) %>%
+  dplyr::filter(year > 1) %>%
+  dplyr::group_by(year, district, repetition) %>%
+  dplyr::reframe(total_cases = sum(n_inc_clinical_1_1825),
+                 total_incidence = sum(n_inc_clinical_1_1825/n_1_1825))
+
+kotido_summary_smc <- kotido_smc %>% 
+  dplyr::mutate(year = ceiling(timestep/365)) %>%
+  dplyr::filter(year > 1) %>%
+  dplyr::group_by(year, district, repetition) %>%
+  dplyr::reframe(total_cases_smc = sum(n_inc_clinical_1_1825),
+                 total_incidence_smc = sum(n_inc_clinical_1_1825/n_1_1825))
+
+kotido_comb <- dplyr::full_join(kotido_summary, kotido_summary_smc, 
+                                by = c("year", "repetition")) %>%
+  dplyr::mutate(cases_averted = total_cases - total_cases_smc,
+                proportion_averted = ((total_cases - total_cases_smc)/total_cases)*100,
+                per_child = total_incidence - total_incidence_smc) %>%
+  dplyr::group_by(year) %>%
+  dplyr::reframe(averted_2.5 = quantile_95(cases_averted)[1],
+                 averted_50 = quantile_95(cases_averted)[2],
+                 averted_97.5 = quantile_95(cases_averted)[3], 
+                 proportion_2.5 = quantile_95(proportion_averted)[1],
+                 proportion_50 = quantile_95(proportion_averted)[2],
+                 proportion_97.5 = quantile_95(proportion_averted)[3],
+                 per_child_2.5 = quantile_95(per_child)[1],
+                 per_child_50 = quantile_95(per_child)[2],
+                 per_child_97.5 = quantile_95(per_child)[3]) 
 
 
