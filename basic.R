@@ -67,6 +67,23 @@ run_counterfactual <- function(population, # population size
   return(out)
 }
 
+# function to return the starting time for the SMC implementation
+# will make it run slower but more reliable SMC timing
+optimal_timing <- function(output) {
+  out <- output %>% 
+    dplyr::select(timestep, n_1_1825, n_inc_clinical_1_1825)
+  out <- rbind(out, out) %>%
+    dplyr::mutate(times = seq(1:(max(out$timestep)*2))) %>%
+    dplyr::mutate(incidence = n_inc_clinical_1_1825/n_1_1825)
+  
+  total <- numeric(365)
+  for(i in 1:365) {
+    total[i] <- sum(out$incidence[seq(i, i+149)])
+  }
+  start <- which(total == max(total))
+  return(start)
+}
+
 run_with_smc <- function(population, # population size
                          sim_length, # simulation length
                          reps = 20, # number of repititions
@@ -77,7 +94,7 @@ run_with_smc <- function(population, # population size
                          age_max, # upper bound on age bands for outputs
                          eir, # district EIR
                          deathrates_mat, # matrix of deathrates until demography is fixed) 
-                         admin_days = c(-75, -45, -15, 15, 45), # admin dates
+                         admin_days = c(0, 30, 60, 90, 120), # admin dates
                          alpha, # drug parameters | resistance
                          beta) {# drug parameters | resistance
   # same as previously
@@ -103,14 +120,14 @@ run_with_smc <- function(population, # population size
   )
   
   simparams <- set_equilibrium(simparams, eir)
+  test <- run_simulation(timesteps = 365, simparams)
+  start <- optimal_timing(test)
+  smc_dates <- rep((365 * seq(1, years-1, by = 1)), 
+                   each = length(admin_days)) + start + rep(admin_days, 2)
+  
   simparams <- set_drugs(parameters = simparams, 
                             list(SP_AQ_params))
-  
-  peak <- peak_season_offset(simparams)
-  
-  smc_dates <- rep((365 * seq(1, years-1, by = 1)), 
-                  each = length(admin_days)) + peak + rep(admin_days, 2)
-  
+
   # add smc
   smcparams <- set_smc(
     simparams,
@@ -209,6 +226,9 @@ for(i in 1:n_dist) {
 saveRDS(df, "output/df_counterfactual_20")
 saveRDS(df_smc, "output/df_smc_20")
 
+df <- readRDS("output/df_counterfactual_20")
+df_smc <- readRDS("output/df_smc_20")
+
 district_eir <- data.frame(names = names, eir = params$eir)
 
 # now write code to compare the impact of SMC in each region
@@ -286,9 +306,10 @@ ggplot(kotido) + geom_line(aes(x = timestep, y = incidence_50, col = scenario)) 
   geom_ribbon(aes(x = timestep, ymin = incidence_2.5, ymax = incidence_97.5, fill = scenario), 
               alpha = 0.2) +
   theme_bw() + labs(x = "Time (days)", y = "Clinical infection incidence/day (under 5s)") +
-  geom_vline(xintercept = smc_dates, lty = 2) + 
+  geom_vline(xintercept = smc_dates, lty = 2, lwd = 0.4) + 
   guides(fill = guide_legend("Intervention"),
-         colour = guide_legend("Intervention"))
+         colour = guide_legend("Intervention")) +
+  xlim(c(0, 800))
 ggsave("output/kotido.png", dpi = 500, width = 20, height = 10, units = "cm")
 
 kotido_summary <- kotido_counterfactual %>% 
