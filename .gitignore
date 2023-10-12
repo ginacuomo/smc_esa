@@ -1,3 +1,6 @@
+# Old scripts not for orderly
+/ignore
+
 # History files
 .Rhistory
 .Rapp.history
