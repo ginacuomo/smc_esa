@@ -1,4 +1,4 @@
-# orderly2::orderly_strict_mode()
+orderly2::orderly_strict_mode()
 orderly2::orderly_resource("uga2.RDS")
 orderly2::orderly_dependency(
   "demography",
