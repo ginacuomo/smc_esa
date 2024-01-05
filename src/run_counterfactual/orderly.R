@@ -109,8 +109,6 @@ human_population <- 25000 # rescale in post processing to actual population size
 age_min <- 1
 age_max <- 5 * 365 # ages for SMC
 
-# test with only three districts for now
-out <- matrix(NA, ncol = 35, nrow = 0)
 out <- run_counterfactual(population = human_population,
                             sim_length = sim_length,
                             reps = repetitions,
@@ -127,6 +125,7 @@ out <- run_counterfactual(population = human_population,
                             deathrates_mat = deathrates_matrix)
 scale <- uga$population$pop[uga$population$year == 2022]/25000
 
+# rescale so that this represents the actual population size of districts (rather than 25000 as is in the model sim)
 out <- out %>% 
   dplyr::mutate(district = district,
                 n_1_1825 = n_1_1825*scale,
