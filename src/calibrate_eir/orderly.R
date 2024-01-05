@@ -44,7 +44,7 @@ parameters <- get_parameters(list(human_population = 5000, individual_mosquitoes
 parameters$timesteps <- 365 * 3
 
 set.seed(123)
-if(sum(target < c(0.01, 0.01, 0.01)) == 3) {
+if(sum(target < c(0.02, 0.02, 0.02)) > 1) {
   low_test <- 1e-4
   high_test <- 3
 } else {
