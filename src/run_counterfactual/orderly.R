@@ -123,7 +123,7 @@ out <- run_counterfactual(population = human_population,
                             age_min = age_min,
                             age_max = age_max,
                             deathrates_mat = deathrates_matrix)
-scale <- uga$population$pop[uga$population$year == 2022]/25000
+scale <- max(uga$population$pop[uga$population$year == 2022]/25000) # hoping to fix the bug
 
 # rescale so that this represents the actual population size of districts (rather than 25000 as is in the model sim)
 out <- out %>% 

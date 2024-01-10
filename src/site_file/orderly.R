@@ -33,7 +33,8 @@ dist <- uga_new %>%
                  tx_cov = wtd.mean(tx_cov, weights = pop),
                  gambiae_relative_abundance = wtd.mean(gambiae_relative_abundance, weights = pop), 
                  arabiensis_relative_abundance = wtd.mean(arabiensis_relative_abundance, weights = pop), 
-                 funestus_relative_abundance = wtd.mean(funestus_relative_abundance, weights = pop))
+                 funestus_relative_abundance = wtd.mean(funestus_relative_abundance, weights = pop)) %>%
+  dplyr::filter(is.na(urban_rural) == FALSE)
 
 # uga2
 

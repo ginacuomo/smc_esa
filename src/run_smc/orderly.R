@@ -17,13 +17,6 @@ if(calibrated == TRUE) {
     c(calibrated_site.RDS = "calibrated_site.RDS"))
 }
 
-# Uganda site files
-if(calibrated == FALSE) {
-  uga <- readRDS("uga2.RDS")
-} else if(calibrated == TRUE) {
-  uga <- readRDS("calibrated_site.RDS")
-}
-
 # packages
 library(malariaEquilibrium)
 library(malariasimulation)
@@ -161,20 +154,20 @@ age_max <- 5 * 365
 out <- run_with_smc(population = human_population,
                       sim_length = sim_length,
                       reps = repetitions, 
-                      g0 = params$g0[i],
-                      g1 = params$g1[i],
-                      g2 = params$g2[i],
-                      g3 = params$g3[i],
-                      h1 = params$h1[i],
-                      h2 = params$h2[i],
-                      h3 = params$h3[i],
-                      eir = params$eir[i],
+                      g0 = params$g0,
+                      g1 = params$g1,
+                      g2 = params$g2,
+                      g3 = params$g3,
+                      h1 = params$h1,
+                      h2 = params$h2,
+                      h3 = params$h3,
+                      eir = params$eir,
                       age_min = age_min,
                       age_max = age_max,
                       deathrates_mat = deathrates_matrix,
                       alpha = 3.930956, # in final version, alpha and beta will also be in the list
                       beta = 30.38846)
-scale <- uga$population$pop[uga$population$year == 2022]/25000
+scale <- max(uga$population$pop[uga$population$year == 2022]/25000)
 
 # rescale so that this represents the actual population size of districts (rather than 25000 as is in the model sim)
 out <- out %>% 
@@ -188,4 +181,4 @@ out <- out %>%
                 n_detect_1_1825 = n_detect_1_1825 * scale,
                 p_detect_1_1825 = p_detect_1_1825 * scale)
 
-saveRDS(out, "df_SMC.RDS")
+saveRDS(out, "df_smc.RDS")
