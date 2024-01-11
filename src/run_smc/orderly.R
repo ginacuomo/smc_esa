@@ -8,7 +8,8 @@ orderly2::orderly_dependency(
 orderly2::orderly_artefact("SMC model run for district", "df_smc.RDS")
 orderly2::orderly_parameters(repetitions = 20,
                              district = NULL,
-                             calibrated = NULL) 
+                             calibrated = NULL, 
+                             cycles = NULL) 
 
 if(calibrated == TRUE) {
   orderly2::orderly_dependency(
@@ -35,7 +36,7 @@ if(calibrated == FALSE) {
 
 # function to return the starting time for the SMC implementation
 # will make it run slower but more reliable SMC timing
-optimal_timing <- function(output) {
+optimal_timing <- function(output, cycle) {
   out <- output %>% 
     dplyr::select(timestep, n_1_1825, n_inc_clinical_1_1825)
   out <- rbind(out, out) %>%
@@ -43,8 +44,9 @@ optimal_timing <- function(output) {
     dplyr::mutate(incidence = n_inc_clinical_1_1825/n_1_1825)
   
   total <- numeric(365)
+  dur <- (cycles * 30)-1
   for(i in 1:365) {
-    total[i] <- sum(out$incidence[seq(i, i+149)])
+    total[i] <- sum(out$incidence[seq(i, i+dur)])
   }
   start <- which(total == max(total))
   return(start)
@@ -60,7 +62,8 @@ run_with_smc <- function(population, # population size
                          age_max, # upper bound on age bands for outputs
                          eir, # district EIR
                          deathrates_mat, # matrix of deathrates until demography is fixed) 
-                         admin_days = c(0, 30, 60, 90, 120), # admin dates
+                         cycle,
+                         # admin_days = c(0, 30, 60, 90, 120), # admin dates
                          alpha, # drug parameters | resistance
                          beta) {# drug parameters | resistance
   # same as previously
@@ -89,7 +92,9 @@ run_with_smc <- function(population, # population size
   
   simparams <- set_equilibrium(simparams, eir)
   test <- run_simulation(timesteps = 365, simparams)
-  start <- optimal_timing(test)
+  start <- optimal_timing(test, cycle = cycles)
+  # admin days now depends on numbers of cycles
+  admin_days <- seq(from = 0, by = 30, length.out = cycle)
   smc_dates <- rep((365 * seq(1, years-1, by = 1)), 
                    each = length(admin_days)) + start + rep(admin_days, 2)
   
@@ -152,21 +157,22 @@ age_max <- 5 * 365
 
 # now repeat for SMC params
 out <- run_with_smc(population = human_population,
-                      sim_length = sim_length,
-                      reps = repetitions, 
-                      g0 = params$g0,
-                      g1 = params$g1,
-                      g2 = params$g2,
-                      g3 = params$g3,
-                      h1 = params$h1,
-                      h2 = params$h2,
-                      h3 = params$h3,
-                      eir = params$eir,
-                      age_min = age_min,
-                      age_max = age_max,
-                      deathrates_mat = deathrates_matrix,
-                      alpha = 3.930956, # in final version, alpha and beta will also be in the list
-                      beta = 30.38846)
+                    sim_length = sim_length,
+                    reps = repetitions, 
+                    g0 = params$g0,
+                    g1 = params$g1,
+                    g2 = params$g2,
+                    g3 = params$g3,
+                    h1 = params$h1,
+                    h2 = params$h2,
+                    h3 = params$h3,
+                    eir = params$eir,
+                    age_min = age_min,
+                    age_max = age_max,
+                    deathrates_mat = deathrates_matrix,
+                    cycle = cycles,
+                    alpha = 3.930956, # in final version, alpha and beta will also be in the list
+                    beta = 30.38846)
 scale <- max(uga$population$pop[uga$population$year == 2022]/25000)
 
 # rescale so that this represents the actual population size of districts (rather than 25000 as is in the model sim)
