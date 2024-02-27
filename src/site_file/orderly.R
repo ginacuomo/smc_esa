@@ -28,7 +28,7 @@ dist <- uga_new %>%
                  par_pf = sum(par_pf),
                  par_pv = sum(par_pv),
                  prev = wtd.mean(pfpr, weights = pop),
-                 itn_use = wtd.mean(pfpr, weights = pop),
+                 itn_use = wtd.mean(itn_use, weights = pop),
                  irs_cov = wtd.mean(irs_cov, weights = pop),
                  tx_cov = wtd.mean(tx_cov, weights = pop),
                  gambiae_relative_abundance = wtd.mean(gambiae_relative_abundance, weights = pop), 
