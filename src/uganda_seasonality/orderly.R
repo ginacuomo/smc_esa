@@ -7,8 +7,8 @@ orderly2::orderly_resource("data/WPP2022.csv")
 orderly2::orderly_resource("karamoja.RDS")
 orderly2::orderly_resource("shape_file.RDS")
 orderly2::orderly_parameters(district = "NA", calibrated = NULL, repetitions = NULL)
-orderly2::orderly_artefact("output/seasonality_comparison.png")
-orderly2::orderly_artefact("output/nmf_adjustment.pdf")
+# orderly2::orderly_artefact("output/seasonality_comparison.png")
+# orderly2::orderly_artefact("output/nmf_adjustment.pdf")
 
 library(tidyverse)
 library(data.table)
@@ -351,9 +351,9 @@ ggplot(data = compare) + theme_bw() +
 ggsave("output/seasonality_comparison.png", dpi = 500, width = 12, height = 7, units = "cm") 
 
 ## adjusting for non-malarial fevers
-mean_nmf_frequency = c(148.578,139.578,141.564,155.874,179.364,
-                       216.192,233.478,268.056,312.858,315.564,
-                       285.156,255.246,238.302,216.618)
+mean_nmf_frequency = c(148.578, 139.578, 141.564, 155.874, 179.364,
+                       216.192, 233.478, 268.056, 312.858, 315.564,
+                       285.156, 255.246, 238.302, 216.618)
 mean_nmf_rate <- 1/mean_nmf_frequency
 nmf_age_brackets = c(-0.1, 365.0, 730.0, 1095.0, 1460.0, 1825.0,
                      2555.0, 3285.0, 4015.0, 4745.0, 5475.0,
@@ -383,7 +383,7 @@ demog_long <- demog %>%
   dplyr::mutate(pop = as.numeric(pop)) %>% # data is in thousands 
   dplyr::mutate(age = as.numeric(age))
 
-ages <- c("0_1_yrs", "1_2_yrs", "2_5_years")
+ages <- c("0_1_yrs", "1_2_yrs", "2_3_yrs", "3_4_yrs", "4_5_yrs")
 # estimated population size in each age class
 pop1 <- demog_long %>%
   dplyr::filter(age %in% 0) %>% 
@@ -394,19 +394,31 @@ pop2 <- demog_long %>%
   dplyr::reframe(population = sum(pop)) %>%
   dplyr::pull(population)
 pop3 <- demog_long %>%
-  dplyr::filter(age %in% seq(2, 5, by = 1)) %>% 
+  dplyr::filter(age %in% 2) %>% 
   dplyr::reframe(population = sum(pop)) %>%
   dplyr::pull(population)
-total_pop <- pop1 + pop2 + pop3
+pop4 <- demog_long %>%
+  dplyr::filter(age %in% 3) %>% 
+  dplyr::reframe(population = sum(pop)) %>%
+  dplyr::pull(population)
+pop5 <- demog_long %>%
+  dplyr::filter(age %in% 4) %>% 
+  dplyr::reframe(population = sum(pop)) %>%
+  dplyr::pull(population)
+total_pop <- pop1 + pop2 + pop3 + pop4 + pop5
 
 # proportion of population in each age group
 proportion <- c(pop1/total_pop,
                 pop2/total_pop,
-                pop3/total_pop)
+                pop3/total_pop,
+                pop4/total_pop,
+                pop5/total_pop)
 
 frequency_fever <- proportion[1] * mean_nmf_frequency[1] +
   proportion[2] * mean_nmf_frequency[2] +
-  proportion[3] * mean_nmf_frequency[3]
+  proportion[3] * mean_nmf_frequency[3] +
+  proportion[4] * mean_nmf_frequency[4] +
+  proportion[5] * mean_nmf_frequency[5]
 rate_fever = 1/frequency_fever
 
 output$nmf <- output$n_detect_1_1825 * rate_fever
@@ -559,3 +571,65 @@ compare_nmf <- rbind(seasonal_compare, seasonal_compare_nmf)
 ggplot(compare_nmf, aes(x = data, y = model, col = district)) + geom_point() + theme_bw() +
   facet_grid(months ~ nmf) + geom_abline(slope = 1, intercept = 0, lty = 2)
 ggsave("output/nmf_adjustment.pdf", units = "cm", width = 20, height = 20, dpi = 300)
+ggplot(compare_nmf, aes(x = data, y = model, col = district)) + geom_point() + theme_bw() +
+  facet_grid(nmf ~ months) + geom_abline(slope = 1, intercept = 0, lty = 2) + 
+  theme(legend.position = "bottom")
+ggsave("output/nmf_adjustment.png", units = "cm", width = 20, height = 15, dpi = 300)
+
+out_agg_q95$adjustment <- "no NMF"
+out_agg_q95_nmf$adjustment <- "NMF"
+out_agg <- rbind(out_agg_q95, out_agg_q95_nmf)
+
+ggplot() + geom_line(data = filter(karamoja_age, age_group == "Under 5 years"), 
+                     aes(x = date, y = cases, group = age_group, col = age_group)) +
+  facet_wrap(.~district, scales = "free_y") + theme_bw() +
+  geom_line() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  geom_line(data = out_agg, aes(x = month, y = median, lty = adjustment)) +
+  theme(legend.position = "bottom")
+ggsave("output/nmf_vs_data.png", dpi = 500, width = 20, height = 12, units = "cm")
+
+## now look at the prevalence over time - see if this is the cause of the relationship we see
+out_compare <- output %>%
+  dplyr::mutate(date = as.Date(timestep, origin = "2021-01-01"),
+                month = format(as.Date(date), "%Y-%m")) %>%
+  dplyr::group_by(district, month, repetition) %>%
+  dplyr::reframe(cases = sum(n_inc_clinical_1_1825),
+                 prev = mean(n_detect_1_1825)) %>%
+  dplyr::ungroup() %>%
+  dplyr::group_by(district, month) %>%
+  dplyr::reframe(median_cases = median(cases),
+                 median_prev = median(prev))
+out_compare_long <- out_compare %>%
+  pivot_longer(cols = median_cases:median_prev, names_to = "parameter", values_to = "model_estimate")
+
+
+
+ggplot(out_compare_long) + geom_line(aes(x = month, y = model_estimate, 
+                                         group = parameter, col = parameter)) +
+  facet_wrap(.~district, scales = "free_y") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme_bw()
+ggsave("output/prevalence_vs_cases.png", dpi = 500, width = 12, height = 7, units = "cm")
+
+
+out_prev <- output %>%
+  dplyr::group_by(district, timestep, repetition) %>%
+  dplyr::reframe(prevalence = n_detect_1_1825/n_1_1825) %>%
+  dplyr::ungroup() %>%
+  dplyr::group_by(district, timestep) %>%
+  dplyr::reframe(prevalence = median(prevalence))
+ggplot(out_prev) + geom_line(aes(x = timestep, y = prevalence)) + facet_wrap(.~district, scales = "free_y") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme_bw() + expand_limits(y = 0)
+
+output_nmf_long <- output %>%
+  dplyr::select(timestep, district, repetition, nmf, nmf_adjusted_cases, n_inc_clinical_1_1825) %>%
+  pivot_longer(nmf:n_inc_clinical_1_1825, names_to = "variable", values_to = "model_estimate") %>%
+  dplyr::group_by(timestep, district, variable) %>%
+  dplyr::reframe(model_estimate = median(model_estimate))
+
+ggplot(output_nmf_long) + geom_line(aes(x = timestep, y = model_estimate, col = variable, group = variable)) + 
+  facet_wrap(.~district, scales = "free_y") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme_bw() + expand_limits(y = 0)
