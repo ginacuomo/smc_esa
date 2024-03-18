@@ -47,6 +47,7 @@ orderly2::orderly_dependency(
 orderly2::orderly_artefact("Summary of impact", "df_comb.RDS")
 orderly2::orderly_artefact("Baseline counterfactual", "baseline.RDS")
 orderly2::orderly_artefact("Incremental benefit vs baseline.RDS", "incremental.RDS")
+orderly2::orderly_artefact("Burden with no SMC", "burden.RDS")
 
 library(tidyverse)
 
@@ -303,3 +304,15 @@ incremental_7 <- rbind(df_smc_4, df_smc_7) %>%
 
 incremental <- rbind(incremental_5, incremental_6, incremental_7)
 saveRDS(incremental, "incremental.RDS")
+
+burden <- df %>% 
+  dplyr::select(timestep, n_1_1825, n_inc_clinical_1_1825, repetition, district) %>%
+  dplyr::mutate(year = floor(timestep/365)+1) %>%
+  dplyr::filter(year < 4) %>% 
+  dplyr::group_by(year, repetition) %>% 
+  dplyr::reframe(incidence = 1000*sum(n_inc_clinical_1_1825, na.rm = TRUE)/(median(n_1_1825))) %>% 
+  dplyr::ungroup() %>%
+  dplyr::reframe(incidence_2.5 = quantile_95(incidence)[1],
+                 incidence_50 = quantile_95(incidence)[2],
+                 incidence_97.5 = quantile_95(incidence)[3])
+saveRDS(burden, "burden.RDS")
