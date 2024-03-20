@@ -6,6 +6,7 @@ orderly2::orderly_resource("data/uganda-march-22-dec-22.csv")
 orderly2::orderly_resource("data/WPP2022.csv")
 orderly2::orderly_resource("karamoja.RDS")
 orderly2::orderly_resource("shape_file.RDS")
+orderly2::orderly_resource("rainfall_data.RDS")
 orderly2::orderly_parameters(calibrated = NULL, repetitions = NULL)
 # orderly2::orderly_artefact("output/seasonality_comparison.png")
 # orderly2::orderly_artefact("output/nmf_adjustment.pdf")
@@ -125,13 +126,56 @@ karamoja_over_10 <- karamoja %>%
 karamoja_age <- rbind(karamoja_under_5, karamoja_over_5, karamoja_over_10)
 karamoja_age$district <- karamoja_age$District
 
-ggplot() + geom_line(data = karamoja_age, aes(x = date, y = cases, 
-                                              group = age_group, col = age_group)) +
-  facet_wrap(.~district, scales = "free_y") + 
-  geom_line() +
-  theme_bw() + 
+comparison <- left_join(dplyr::filter(karamoja_age, age_group == "Under 5 years"),
+                        out_agg_q95, join_by(District == district, date == month)) %>%
+  dplyr::mutate(district = District,
+                Data = cases, 
+                Model = median) %>%
+  dplyr::select(date, district, Data, Model) %>%
+  tidyr::pivot_longer(Data:Model, names_to = "source", values_to = "under_5")
+  
+comparison$source <- factor(comparison$source, 
+                                levels = c("Data", "Model"))
+gg_color_hue <-  function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+
+val_1 <- gg_color_hue(n = 3)[1]
+val_2 <- gg_color_hue(n = 3)[2]
+val_3 <- gg_color_hue(n = 3)[3]
+
+ggplot() + geom_line(data = comparison, aes(x = date, y = under_5,
+                                              group = source, col = source)) +
+  facet_wrap(.~district, scales = "free_y") +
+  theme_bw() + guides(col = guide_legend(title="Source")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  geom_line(data = out_agg_q95, aes(x = month, y = median), lty = 2) # make visual check easier
+  labs(x = "Date", y = "Under 5 clinical incidence") +
+  scale_colour_manual(values = c(val_1, val_2))
+
+ggplot() + geom_line(data = filter(comparison, district == "Nabilatuk"), aes(x = date, y = under_5,
+                                            group = source, col = source)) +
+  facet_wrap(.~district, scales = "free_y") +
+  theme_bw() + guides(col = guide_legend(title="Source")) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(x = "Date", y = "Under 5 clinical incidence") +
+  geom_vline(xintercept = c(as.Date("2022-06-01"),
+                            as.Date("2022-07-01"),
+                            as.Date("2022-08-01"),
+                            as.Date("2022-09-01"),
+                            as.Date("2022-10-01")), lty = 2) +
+  theme(legend.position = "bottom")
+
+
+
+# ggplot() + geom_line(data = dplyr::filter(karamoja_age, age_group == "Under 5 years"), 
+#                      aes(x = date, y = cases, 
+#                          group = age_group, col = age_group)) +
+#   facet_wrap(.~district, scales = "free_y") + 
+#   geom_line() +
+#   theme_bw() + guides(col = guide_legend(title="Age group")) + 
+#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+#   geom_line(data = out_agg_q95, aes(x = month, y = median), lty = 2) # make visual check easier
 
 #######################################################################################################
 
@@ -590,6 +634,43 @@ ggplot() + geom_line(data = filter(karamoja_age, age_group == "Under 5 years"),
   theme(legend.position = "bottom")
 ggsave("output/nmf_vs_data.png", dpi = 500, width = 20, height = 12, units = "cm")
 
+comparison_nmf <- left_join(dplyr::filter(karamoja_age, age_group == "Under 5 years"),
+                        out_agg, join_by(District == district, date == month)) %>%
+  dplyr::select(date, district, cases, median, adjustment) %>%
+  tidyr::pivot_wider(names_from = adjustment, values_from = median) %>%
+  dplyr::mutate(Data = cases, 
+                Model = `no NMF`,
+                `Model adjusted` = `NMF`) %>%
+  tidyr::pivot_longer(Data:`Model adjusted`, names_to = "source", values_to = "under_5") %>%
+  dplyr::mutate(dataset = if_else(source == "Data", "Data", "Model"))
+comparison_nmf$source <- factor(comparison_nmf$source, 
+                                levels = c("Data", "Model", "Model adjusted"))
+
+ggplot() + geom_line(data = comparison_nmf, aes(x = date, y = under_5,
+                                            group = source, col = source)) +
+  facet_wrap(.~district, scales = "free_y") +
+  theme_bw() + guides(col = guide_legend(title="Source")) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(x = "Date", y = "Under 5 clinical incidence") +
+  scale_fill_manual(values=c(val_1, val_2, val_3))
+
+ggplot() + geom_line(data = filter(comparison_nmf, district == "Nabilatuk"), aes(x = date, y = under_5,
+                                                                                 group = source, col = source)) +
+  facet_wrap(.~district, scales = "free_y") +
+  theme_bw() + guides(col = guide_legend(title="Source")) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(x = "Date", y = "Under 5 clinical incidence") +
+  geom_vline(xintercept = c(as.Date("2022-06-01"),
+                            as.Date("2022-07-01"),
+                            as.Date("2022-08-01"),
+                            as.Date("2022-09-01"),
+                            as.Date("2022-10-01")), lty = 2) +
+  scale_fill_manual(values=c(val_1, val_2, val_3))
+
+
+
+
+
 ## now look at the prevalence over time - see if this is the cause of the relationship we see
 out_compare <- output %>%
   dplyr::mutate(date = as.Date(timestep, origin = "2021-01-01"),
@@ -634,3 +715,54 @@ ggplot(output_nmf_long) + geom_line(aes(x = timestep, y = model_estimate, col = 
   facet_wrap(.~district, scales = "free_y") + 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   theme_bw() + expand_limits(y = 0)
+
+## compare rainfall seasonality and data seasonality
+head(karamoja_seasonality)
+
+rainfall <- readRDS("rainfall_data.RDS")
+rainfall <- rainfall %>%
+  tidyr::pivot_longer(cols = raster1:raster365, names_to = "day", values_to = "rainfall") %>%
+  dplyr::rowwise() %>%
+  dplyr::mutate(day = as.numeric(unlist(strsplit(day, "raster"))[2])) %>%
+  dplyr::group_by(day, districts) %>%
+  dplyr::reframe(rainfall = sum(rainfall)) %>%
+  dplyr::arrange(districts) %>%
+  dplyr::distinct()
+# function to estimate rainfall seasonality
+rainfall_seasonality_fn <- function(rainfall_df, district, months = 3) {
+  data <- rainfall_df %>%
+    dplyr::filter(districts == district)
+  data <- rbind(data, data) %>%
+    dplyr::mutate(day = row_number())
+  
+  years <- length(unique(data$day))/365
+  len <- length(unique(data$day))
+  annual_rain <- sum(data$rainfall)/years
+  days <- round(months * 30.25, digits = 0)
+  
+  prop <- numeric(0)
+  for(i in 1:(len - (days-1))) {
+    prop[i] <- (sum(data$rainfall[i:(i+(days - 1))], na.rm = TRUE))/annual_rain
+  }
+  
+  max <- max(prop)
+  return(max)
+  
+}
+
+
+rainfall_seasonality <- data.frame(district = unique(karamoja_seasonality$district),
+                                   three_month = numeric(length(unique(karamoja_seasonality$district))))
+for(i in 1:length(unique(karamoja_seasonality$district))) {
+  rainfall_seasonality$rainfall_three_month[i] <- rainfall_seasonality_fn(rainfall_df = rainfall, 
+                                                                 district = rainfall_seasonality$district[i],
+                                                                 months = 3)*100
+}
+karamoja_seasonality <- left_join(karamoja_seasonality, rainfall_seasonality)
+
+ggplot(karamoja_seasonality, aes(x = four_month, y = rainfall_three_month, col = district)) +
+  geom_point() + theme_bw() + geom_abline(slope = 1, intercept = 0, lty = 2) +
+  xlim(c(40, 65)) + ylim(c(40, 65)) +
+  labs(x = "Clinical cases in four consecutive months (%)",
+       y = "Rainfall in three consecutive months (%)")
+
