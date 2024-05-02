@@ -47,7 +47,6 @@ orderly2::orderly_dependency(
 orderly2::orderly_artefact("Summary of impact", "df_comb.RDS")
 orderly2::orderly_artefact("Baseline counterfactual", "baseline.RDS")
 orderly2::orderly_artefact("Incremental benefit vs baseline.RDS", "incremental.RDS")
-orderly2::orderly_artefact("Burden with no SMC", "burden.RDS")
 
 library(tidyverse)
 
@@ -62,7 +61,7 @@ quantile_95 <- function(x) {
   quantile(x, probs = c(0.025, 0.5, 0.975))
 }
 
-# analyse outputs
+# analyse outputs - consistent throughout and alignment b/w no smc and smc dfs
 no_smc_summary <- df %>%
   dplyr::mutate(year = ceiling(timestep/365)) %>% 
   dplyr::filter(year > 2) %>% # omit the first year where no SMC
@@ -111,16 +110,16 @@ smc_summary_7 <- df_smc_7 %>%
 
 
 #####
-df_comb_4 <- cbind(no_smc_summary, 
-                   total_cases_smc = smc_summary_4$total_cases_smc, 
-                   total_severe_smc = smc_summary_4$total_severe_smc, 
-                   total_incidence_smc = smc_summary_4$total_incidence_smc) %>%
-  as.data.frame() %>%
-  dplyr::mutate(cases_averted = total_cases - total_cases_smc,
+df_comb_4 <- smc_summary_4 %>%
+  dplyr::select(district, repetition, total_cases_smc:total_incidence_smc) %>%
+  dplyr::full_join(no_smc_summary, by = c("district", "repetition")) %>%
+  dplyr::group_by(district, repetition) %>% 
+  dplyr::reframe(cases_averted = total_cases - total_cases_smc,
                 severe_averted = total_severe - total_severe_smc,
                 proportion_averted = ((total_cases - total_cases_smc)/total_cases)*100,
                 per_child = total_incidence - total_incidence_smc) %>%
-  dplyr::group_by(year, district) %>%
+  dplyr::ungroup() %>%
+  dplyr::group_by(district) %>%
   dplyr::reframe(averted_2.5 = quantile_95(cases_averted)[1],
                  averted_50 = quantile_95(cases_averted)[2],
                  averted_97.5 = quantile_95(cases_averted)[3], 
@@ -133,18 +132,17 @@ df_comb_4 <- cbind(no_smc_summary,
                  per_child_2.5 = quantile_95(per_child)[1],
                  per_child_50 = quantile_95(per_child)[2],
                  per_child_97.5 = quantile_95(per_child)[3]) %>%
-  dplyr::mutate(cycles = 4) %>%
-  dplyr::filter(year == 3)
-df_comb_5 <- cbind(no_smc_summary, 
-                   total_cases_smc = smc_summary_5$total_cases_smc, 
-                   total_severe_smc = smc_summary_5$total_severe_smc, 
-                   total_incidence_smc = smc_summary_5$total_incidence_smc) %>%
-  as.data.frame() %>%
-  dplyr::mutate(cases_averted = total_cases - total_cases_smc,
-                severe_averted = total_severe - total_severe_smc,
-                proportion_averted = ((total_cases - total_cases_smc)/total_cases)*100,
-                per_child = total_incidence - total_incidence_smc) %>%
-  dplyr::group_by(year, district) %>%
+  dplyr::mutate(cycles = "4 cycles")
+df_comb_5 <- smc_summary_5 %>%
+  dplyr::select(district, repetition, total_cases_smc:total_incidence_smc) %>%
+  dplyr::full_join(no_smc_summary, by = c("district", "repetition")) %>%
+  dplyr::group_by(district, repetition) %>% 
+  dplyr::reframe(cases_averted = total_cases - total_cases_smc,
+                 severe_averted = total_severe - total_severe_smc,
+                 proportion_averted = ((total_cases - total_cases_smc)/total_cases)*100,
+                 per_child = total_incidence - total_incidence_smc) %>%
+  dplyr::ungroup() %>%
+  dplyr::group_by(district) %>%
   dplyr::reframe(averted_2.5 = quantile_95(cases_averted)[1],
                  averted_50 = quantile_95(cases_averted)[2],
                  averted_97.5 = quantile_95(cases_averted)[3], 
@@ -157,18 +155,17 @@ df_comb_5 <- cbind(no_smc_summary,
                  per_child_2.5 = quantile_95(per_child)[1],
                  per_child_50 = quantile_95(per_child)[2],
                  per_child_97.5 = quantile_95(per_child)[3]) %>%
-  dplyr::mutate(cycles = 5) %>%
-  dplyr::filter(year == 3)
-df_comb_6 <- cbind(no_smc_summary, 
-                   total_cases_smc = smc_summary_6$total_cases_smc, 
-                   total_severe_smc = smc_summary_6$total_severe_smc, 
-                   total_incidence_smc = smc_summary_6$total_incidence_smc) %>%
-  as.data.frame() %>%
-  dplyr::mutate(cases_averted = total_cases - total_cases_smc,
-                severe_averted = total_severe - total_severe_smc,
-                proportion_averted = ((total_cases - total_cases_smc)/total_cases)*100,
-                per_child = total_incidence - total_incidence_smc) %>%
-  dplyr::group_by(year, district) %>%
+  dplyr::mutate(cycles = "5 cycles")
+df_comb_6 <- smc_summary_6 %>%
+  dplyr::select(district, repetition, total_cases_smc:total_incidence_smc) %>%
+  dplyr::full_join(no_smc_summary, by = c("district", "repetition")) %>%
+  dplyr::group_by(district, repetition) %>% 
+  dplyr::reframe(cases_averted = total_cases - total_cases_smc,
+                 severe_averted = total_severe - total_severe_smc,
+                 proportion_averted = ((total_cases - total_cases_smc)/total_cases)*100,
+                 per_child = total_incidence - total_incidence_smc) %>%
+  dplyr::ungroup() %>%
+  dplyr::group_by(district) %>%
   dplyr::reframe(averted_2.5 = quantile_95(cases_averted)[1],
                  averted_50 = quantile_95(cases_averted)[2],
                  averted_97.5 = quantile_95(cases_averted)[3], 
@@ -181,18 +178,17 @@ df_comb_6 <- cbind(no_smc_summary,
                  per_child_2.5 = quantile_95(per_child)[1],
                  per_child_50 = quantile_95(per_child)[2],
                  per_child_97.5 = quantile_95(per_child)[3]) %>%
-  dplyr::mutate(cycles = 6) %>%
-  dplyr::filter(year == 3)
-df_comb_7 <- cbind(no_smc_summary, 
-                   total_cases_smc = smc_summary_7$total_cases_smc, 
-                   total_severe_smc = smc_summary_7$total_severe_smc, 
-                   total_incidence_smc = smc_summary_7$total_incidence_smc) %>%
-  as.data.frame() %>%
-  dplyr::mutate(cases_averted = total_cases - total_cases_smc,
-                severe_averted = total_severe - total_severe_smc,
-                proportion_averted = ((total_cases - total_cases_smc)/total_cases)*100,
-                per_child = total_incidence - total_incidence_smc) %>%
-  dplyr::group_by(year, district) %>%
+  dplyr::mutate(cycles = "6 cycles")
+df_comb_7 <- smc_summary_7 %>%
+  dplyr::select(district, repetition, total_cases_smc:total_incidence_smc) %>%
+  dplyr::full_join(no_smc_summary, by = c("district", "repetition")) %>%
+  dplyr::group_by(district, repetition) %>% 
+  dplyr::reframe(cases_averted = total_cases - total_cases_smc,
+                 severe_averted = total_severe - total_severe_smc,
+                 proportion_averted = ((total_cases - total_cases_smc)/total_cases)*100,
+                 per_child = total_incidence - total_incidence_smc) %>%
+  dplyr::ungroup() %>%
+  dplyr::group_by(district) %>%
   dplyr::reframe(averted_2.5 = quantile_95(cases_averted)[1],
                  averted_50 = quantile_95(cases_averted)[2],
                  averted_97.5 = quantile_95(cases_averted)[3], 
@@ -205,12 +201,11 @@ df_comb_7 <- cbind(no_smc_summary,
                  per_child_2.5 = quantile_95(per_child)[1],
                  per_child_50 = quantile_95(per_child)[2],
                  per_child_97.5 = quantile_95(per_child)[3]) %>%
-  dplyr::mutate(cycles = 7) %>%
-  dplyr::filter(year == 3)
+  dplyr::mutate(cycles = "7 cycles")
 
 
 df_comb <- rbind(df_comb_4, df_comb_5, df_comb_6, df_comb_7) %>%
-  dplyr::arrange(district, year, cycles)
+  dplyr::arrange(district, cycles)
 
 saveRDS(df_comb, "df_comb.RDS")
 
@@ -221,10 +216,10 @@ saveRDS(df_comb, "df_comb.RDS")
 # baseline effect
 saveRDS(df_comb_4, "baseline.RDS")
 
-df_smc_4$cycles <- 4
-df_smc_5$cycles <- 5
-df_smc_6$cycles <- 6
-df_smc_7$cycles <- 7
+df_smc_4$cycles <- "4 cycles"
+df_smc_5$cycles <- "5 cycles"
+df_smc_6$cycles <- "6 cycles"
+df_smc_7$cycles <- "7 cycles"
 
 ## now need differences between 4 and additional cycles
 incremental_5 <- rbind(df_smc_4, df_smc_5) %>%
@@ -250,7 +245,7 @@ incremental_5 <- rbind(df_smc_4, df_smc_5) %>%
                  per_child_2.5 = quantile_95(incidence_averted)[1],
                  per_child_50 = quantile_95(incidence_averted)[2],
                  per_child_97.5 = quantile_95(incidence_averted)[3]) %>%
-  dplyr::mutate(cycles = 5)
+  dplyr::mutate(cycles = "5 cycles")
 
 incremental_6 <- rbind(df_smc_4, df_smc_6) %>%
   dplyr::select(timestep, n_1_1825, n_inc_clinical_1_1825, n_inc_severe_1_1825, 
@@ -275,7 +270,7 @@ incremental_6 <- rbind(df_smc_4, df_smc_6) %>%
                  per_child_2.5 = quantile_95(incidence_averted)[1],
                  per_child_50 = quantile_95(incidence_averted)[2],
                  per_child_97.5 = quantile_95(incidence_averted)[3]) %>%
-  dplyr::mutate(cycles = 6)
+  dplyr::mutate(cycles = "6 cycles")
 
 incremental_7 <- rbind(df_smc_4, df_smc_7) %>%
   dplyr::select(timestep, n_1_1825, n_inc_clinical_1_1825, n_inc_severe_1_1825, 
@@ -300,21 +295,7 @@ incremental_7 <- rbind(df_smc_4, df_smc_7) %>%
                  per_child_2.5 = quantile_95(incidence_averted)[1],
                  per_child_50 = quantile_95(incidence_averted)[2],
                  per_child_97.5 = quantile_95(incidence_averted)[3]) %>%
-  dplyr::mutate(cycles = 7)
+  dplyr::mutate(cycles = "7 cycles")
 
 incremental <- rbind(incremental_5, incremental_6, incremental_7)
 saveRDS(incremental, "incremental.RDS")
-
-burden <- df %>% 
-  dplyr::select(timestep, n_1_1825, n_inc_clinical_1_1825, repetition, district) %>%
-  dplyr::mutate(year = floor(timestep/365)+1) %>%
-  dplyr::filter(year < 4) %>% 
-  dplyr::mutate(day = timestep%%365) %>%
-  dplyr::filter(day %in% seq(from = 182, length.out = 30)) %>%
-  dplyr::group_by(year, repetition) %>% 
-  dplyr::reframe(incidence = 1000*sum(n_inc_clinical_1_1825, na.rm = TRUE)/(median(n_1_1825))) %>% 
-  dplyr::ungroup() %>%
-  dplyr::reframe(incidence_2.5 = quantile_95(incidence)[1],
-                 incidence_50 = quantile_95(incidence)[2],
-                 incidence_97.5 = quantile_95(incidence)[3])
-saveRDS(burden, "burden.RDS")
