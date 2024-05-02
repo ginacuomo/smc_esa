@@ -128,7 +128,7 @@ for(i in 1:length(districts)) {
                                            quote(latest(parameter:district == environment:district &&
                                                           parameter:calibrated == TRUE &&
                                                           parameter:repetitions == 20)),
-                                           c(df.RDS = "df_comb.RDS"))
+                                           files)
   dt <- readRDS(metadata$files$here)
   output <- rbind(output, dt, fill = T)
 }
@@ -246,6 +246,8 @@ population <- data.frame(district = unique(no_smc$district),
                          population = numeric(length(unique(no_smc$district))))
 for(i in 1:nrow(population)) {
   district <- population$district[i]
+  files <- c("calibrated_site.RDS")
+  names(files) <- file.path("data", paste0("site_", district, ".RDS"))
   metadata <- orderly2::orderly_dependency("calibrate_eir",
                                            quote(latest(parameter:district == environment:district)),
                                            c(site.RDS = "calibrated_site.RDS"))
@@ -281,5 +283,5 @@ saveRDS(smc_district, "smc_district.RDS")
 saveRDS(district_impact, "district_impact.RDS")
 saveRDS(seasonality_district, "seasonality.RDS")
 saveRDS(incremental_district, "incremental_district.RDS")
-saveRDS(doses_district, "doses_district")
-saveRDS(dose_per_averted, "dose_per_averted")
+saveRDS(doses_district, "doses_district.RDS")
+saveRDS(dose_per_averted, "dose_per_averted.RDS")
