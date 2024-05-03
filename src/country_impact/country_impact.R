@@ -16,8 +16,9 @@ orderly2::orderly_artefact("SMC output at a district level - all reps and cycles
 orderly2::orderly_artefact("SMC impact at a district level - all districts and cycles + quantiles", "district_impact.RDS")
 orderly2::orderly_artefact("Model estimated district seasonality", "seasonality.RDS")
 orderly2::orderly_artefact("Proportional impact of additional cycles - 4 cycle baseline", "incremental_district.RDS")
-orderly2::orderly_artefact("Population estimates and doses delivered", "doses_district")
-orderly2::orderly_artefact("Doses per clinical and severe case averted - district level", "dose_per_averted")
+orderly2::orderly_artefact("Population estimates and doses delivered", "doses_district.RDS")
+orderly2::orderly_artefact("Doses per clinical and severe case averted - district level", "dose_per_averted.RDS")
+orderly2::orderly_artefact("Population size, MAP prevalence and calibrated EIR", "population_prev.RDS")
 
 ## define resources and dependencies
 orderly2::orderly_shared_resource(districts.RDS = "districts.RDS")
@@ -242,17 +243,21 @@ seasonality_district <- seasonality %>%
                  seasonality_50 = median(seasonality),
                  seasonality_97.5 = quantile(seasonality, 0.975)) 
 
-population <- data.frame(district = unique(no_smc$district),
-                         population = numeric(length(unique(no_smc$district))))
+population_prev <- data.frame(district = unique(no_smc$district),
+                         population = numeric(length(unique(no_smc$district))),
+                         prev = numeric(length(unique(no_smc$district))),
+                         eir = numeric(length(unique(no_smc$district))))
 for(i in 1:nrow(population)) {
-  district <- population$district[i]
+  district <- population_prev$district[i]
   files <- c("calibrated_site.RDS")
   names(files) <- file.path("data", paste0("site_", district, ".RDS"))
   metadata <- orderly2::orderly_dependency("calibrate_eir",
                                            quote(latest(parameter:district == environment:district)),
-                                           c(site.RDS = "calibrated_site.RDS"))
+                                           files)
   dt <- readRDS(metadata$files$here)
-  population$population[i] <- dt$population %>% dplyr::filter(year == 2022) %>% pull(par_pf)
+  population_prev$population[i] <- dt$population %>% dplyr::filter(year == 2022) %>% pull(par_pf)
+  population_prev$prev[i] <- dt$prevalence %>% dplyr::filter(year == 2022) %>% dplyr::pull(pfpr)
+  population_prev$eir[i] <- as.numeric(dt$eir$eir)
 }
 
 u5 <- 0.1677317 # from UN WPP estimates for Uganda
@@ -285,3 +290,4 @@ saveRDS(seasonality_district, "seasonality.RDS")
 saveRDS(incremental_district, "incremental_district.RDS")
 saveRDS(doses_district, "doses_district.RDS")
 saveRDS(dose_per_averted, "dose_per_averted.RDS")
+saveRDS(population_prev, "population_prev.RDS")
