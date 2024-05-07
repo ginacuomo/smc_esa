@@ -255,8 +255,8 @@ for(i in 1:nrow(population)) {
                                            quote(latest(parameter:district == environment:district)),
                                            files)
   dt <- readRDS(metadata$files$here)
-  population_prev$population[i] <- dt$population %>% dplyr::filter(year == 2022) %>% pull(par_pf)
-  population_prev$prev[i] <- dt$prevalence %>% dplyr::filter(year == 2022) %>% dplyr::pull(pfpr)
+  population_prev$population[i] <- dt$population %>% dplyr::filter(year == 2022) %>% pull(par_pf) %>% max()
+  population_prev$prev[i] <- dt$prevalence %>% dplyr::filter(year == 2022) %>% dplyr::pull(pfpr) %>% max()
   population_prev$eir[i] <- as.numeric(dt$eir$eir)
 }
 

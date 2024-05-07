@@ -25,8 +25,29 @@ orderly2::orderly_dependency("country_impact", quote(latest(parameter:calibrated
                                doses_district.RDS = "doses_district.RDS",
                                dose_per_averted.RDS = "dose_per_averted.RDS"))
 
-orderly2::orderly_artefact("Map of X", "map.png")
-
+orderly2::orderly_artefact("Clinical burden without SMC", "no_smc_clinical.png")
+orderly2::orderly_artefact("Severe burden no SMC", "no_smc_severe.png")
+orderly2::orderly_artefact("Clinical averted by cycles", "averted.png")
+orderly2::orderly_artefact("Severe averted by cycles", "severe.png")
+orderly2::orderly_artefact("Proportion averted by cycles", "proportion.png")
+orderly2::orderly_artefact("Clinical averted per child by cycles", "per_child.png")
+orderly2::orderly_artefact("Incremental benefit of each additional cycle (4 = baseline)", "incremental.png")
+orderly2::orderly_artefact("Cycles needed per clinical case averted", "doses_per_clinical.png")
+orderly2::orderly_artefact("Cycles needed per clinical case averted", "doses_per_severe.png")
+orderly2::orderly_artefact("Model estimated seasonality", "seasonality.png")
+orderly2::orderly_artefact("Model estimated prevalence", "prev.png")
+orderly2::orderly_artefact("Model estimated SMC eligible population", "population.png")
+orderly2::orderly_artefact("Dataframe of burden", "burden.RDS") 
+orderly2::orderly_artefact("Dataframe of averted", "averted.RDS") 
+orderly2::orderly_artefact("Dataframe of severe", "severe.RDS") 
+orderly2::orderly_artefact("Dataframe of proportion", "proportion.RDS") 
+orderly2::orderly_artefact("Dataframe of per_child", "per_child.RDS") 
+orderly2::orderly_artefact("Dataframe of seasonality", "seasonality.RDS") 
+orderly2::orderly_artefact("Dataframe of incremental", "incremental.RDS") 
+orderly2::orderly_artefact("Dataframe of population", "population.RDS") 
+orderly2::orderly_artefact("Dataframe of doses", "doses.RDS") 
+orderly2::orderly_artefact("Dataframe of doses_averted", "doses_averted.RDS") 
+orderly2::orderly_artefact("Dataframe of prev", "prev.RDS") 
 
 # load packages
 library(tidyverse)
@@ -108,16 +129,27 @@ prev <- population_prev %>%
 
 # combine with the shape file
 burden <- full_join(shape, burden, join_by(ADM2_EN == district))
+saveRDS(burden, "burden.RDS")
 averted <- full_join(shape, averted, join_by(ADM2_EN == district))
+saveRDS(averted, "averted.RDS")
 severe <- full_join(shape, severe, join_by(ADM2_EN == district))
+saveRDS(severe, "severe.RDS")
 proportion <- full_join(shape, proportion, join_by(ADM2_EN == district))
+saveRDS(proportion, "proportion.RDS")
 per_child <- full_join(shape, per_child, join_by(ADM2_EN == district))
+saveRDS(per_child, "per_child.RDS")
 seasonality <- full_join(shape, seasonality, join_by(ADM2_EN == district))
+saveRDS(seasonality, "seasonality.RDS")
 incremental <- full_join(shape, incremental_district, join_by(ADM2_EN == district))
+saveRDS(incremental, "incremental.RDS")
 population <- full_join(shape, population, join_by(ADM2_EN == district))
+saveRDS(population, "population.RDS")
 doses <- full_join(shape, doses, join_by(ADM2_EN == district))
+saveRDS(doses, "doses.RDS")
 doses_averted <- full_join(shape, doses_averted, join_by(ADM2_EN == district))
+saveRDS(doses_averted, "doses_averted.RDS")
 prev <- full_join(shape, prev, join_by(ADM2_EN == district))
+saveRDS(prev, "prev.RDS")
 
 ## making plots
 ## without SMC
