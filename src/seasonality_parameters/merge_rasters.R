@@ -4,6 +4,8 @@ admin2_shp <- readOGR(dsn="data/map", # directory of the folder containing shape
                       stringsAsFactors = FALSE)
 adm2_shp <- st_as_sf(admin2_shp[admin2_shp$ADM0_EN == "Uganda",])
 
+
+
 # chirps data urls
 urls <- umbrella::get_urls(year = 2022)
 for(i in 1:length(urls)) {
