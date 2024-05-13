@@ -1,10 +1,11 @@
 # create my shape file of the health districts matching the routine data
-admin2_shp <- readOGR(dsn="data/map", # directory of the folder containing shapefiles
-                      layer="uga_admbnda_adm2_ubos_20200824", # name of the admin1 file
-                      stringsAsFactors = FALSE)
-adm2_shp <- st_as_sf(admin2_shp[admin2_shp$ADM0_EN == "Uganda",])
+# admin2_shp <- readOGR(dsn="data/map", # directory of the folder containing shapefiles
+#                       layer="uga_admbnda_adm2_ubos_20200824", # name of the admin1 file
+#                       stringsAsFactors = FALSE)
+# adm2_shp <- st_as_sf(admin2_shp[admin2_shp$ADM0_EN == "Uganda",])
 
-
+## for Matt and Andria:
+adm2_shp <- readRDS("output/shape_file.RDS")
 
 # chirps data urls
 urls <- umbrella::get_urls(year = 2022)
