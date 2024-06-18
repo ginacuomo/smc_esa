@@ -3,6 +3,14 @@
 
 districts <- readRDS("districts.RDS")
 districts <- districts[!districts == "Kampala"]
+
+orderly2::orderly_run("demography")
+
+for(i in 1:length(districts)) {
+  orderly2::orderly_run("seasonality_parameters", 
+                        parameters = list(district = districts[i]),
+                        echo = FALSE)
+}
 # site files run for all
 for(i in 1:length(districts)) {
   district <- districts[i]
