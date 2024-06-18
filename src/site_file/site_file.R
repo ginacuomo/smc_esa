@@ -76,8 +76,7 @@ population <- tibble(country = rep("Uganda", nrow(dist)),
                      par_pv = 0)
 
 demography <- NA
-# unsure what to do about $ vectors
-
+# normalise vector species
 arabiensis <- dist %>%
   dplyr::filter(year %in% 2020:2023) %>%
   pull(arabiensis_relative_abundance) %>%
