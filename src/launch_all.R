@@ -56,6 +56,10 @@ for(i in 1:length(districts)) {
                         echo = FALSE) 
 }
 
+
+orderly2::orderly_run("country_impact", parameters = list(calibrated = TRUE,
+                                                      repetitions = 20))
+
 orderly2::orderly_run("map_impact", parameters = list(calibrated = TRUE,
                                                       repetitions = 20))
 

@@ -5,7 +5,7 @@ orderly2::orderly_resource("data/uga2.RDS")
 orderly2::orderly_parameters(district = NULL)
 # pull in the seasonality parameters from this district
 orderly2::orderly_dependency("seasonality_parameters",
-                             "latest(parameter:district == this:district) ",
+                             "latest(parameter:district == this:district)",
                              c(params.RDS = "params.RDS")) 
 # define the artefacts
 orderly2::orderly_artefact(description = "District site file",
