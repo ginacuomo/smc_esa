@@ -1,6 +1,6 @@
 library(tidyverse)
 
-districts <- readRDS("seasonality_parameters/input/districts.rds")
+districts <- readRDS("districts.RDS")
 
 for(i in 1:length(districts)) {
   orderly2::orderly_run("seasonality_parameters", 
