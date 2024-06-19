@@ -5,6 +5,7 @@ districts <- readRDS("districts.RDS")
 districts <- districts[!districts == "Kampala"]
 
 orderly2::orderly_run("demography")
+orderly2::orderly_run("merge_rasters")
 
 for(i in 1:length(districts)) {
   orderly2::orderly_run("seasonality_parameters", 
