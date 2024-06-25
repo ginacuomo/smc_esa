@@ -9,3 +9,16 @@ Orderly task descriptions and the order you should run them in. Tasks 2 - 7 are 
 8. **country impact** - assess the country level impact of the intervention 
 9. **map_impact** - maps the impact of the intervention across all districts. This is the first point where we have to cycle over all districts in the country when reading in the dependencies which improves computational time vs doing it earlier
 10. **figures** - generates generic figures for exploration. Specific R scripts are created for manuscript figures to exactly reproduce this code.
+
+
+## for integration with the cluster
+Follow the instructions for installation of hipercow on the website vignette: https://mrc-ide.github.io/hipercow/articles/hipercow.html
+Set up the hipercow infrastructure on your personal drive - these tasks will later be pushed to a folder in the malaria drive so we can collaborate easily.
+Clone the github repository into your personal drive. Move the hipercow folder into this directory. hipercow is in the .gitignore so that none of these outputs will be added to git or anywhere else.
+Reinitialise orderly2 to use your personal drive now instead.
+
+## install packages on the cluster for use
+hipercow_provision(method = "pkgdepends") # ensure you have installed "pkgdepends" locally 
+
+Now you can use the specific launch scripts for integration with hipercow.
+NOTE: edits to the code base need to be made on a branch and merged into main before running on the cluster
