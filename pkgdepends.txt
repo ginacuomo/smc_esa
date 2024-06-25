@@ -8,3 +8,4 @@ mrc-ide/cali
 ggplot2
 tidyverse
 terra
+sf
