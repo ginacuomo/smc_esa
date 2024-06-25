@@ -1,4 +1,7 @@
-orderly2::orderly_resource("input/full_data.RDS")
+orderly2::orderly_dependency(
+  "merge_rasters",
+  "latest()",
+  c(full_data.RDS = "full_data.RDS"))
 orderly2::orderly_artefact(description = "District seasonality parameters",
                            files = c("params.RDS"))
 orderly2::orderly_description("Generates Fourier parameters for district")
@@ -7,7 +10,7 @@ orderly2::orderly_parameters(district = NULL)
 library(tidyverse)
 library(ggplot2)
 
-full_data <- readRDS("input/full_data.RDS")
+full_data <- readRDS("full_data.RDS")
 
 # make df long
 data <- full_data %>%

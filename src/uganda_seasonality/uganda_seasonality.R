@@ -153,17 +153,12 @@ ggplot() + geom_line(data = comparison, aes(x = date, y = under_5,
   labs(x = "Date", y = "Under 5 clinical incidence") +
   scale_colour_manual(values = c(val_1, val_2))
 
-ggplot() + geom_line(data = filter(comparison, district == "Nabilatuk"), aes(x = date, y = under_5,
+ggplot() + geom_line(data = filter(comparison, district == "Karenga"), aes(x = date, y = under_5,
                                             group = source, col = source)) +
   facet_wrap(.~district, scales = "free_y") +
   theme_bw() + guides(col = guide_legend(title="Source")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   labs(x = "Date", y = "Under 5 clinical incidence") +
-  geom_vline(xintercept = c(as.Date("2022-06-01"),
-                            as.Date("2022-07-01"),
-                            as.Date("2022-08-01"),
-                            as.Date("2022-09-01"),
-                            as.Date("2022-10-01")), lty = 2) +
   theme(legend.position = "bottom")
 
 
@@ -613,13 +608,27 @@ compare_nmf <- rbind(seasonal_compare, seasonal_compare_nmf)
 compare_nmf$months <- factor(compare_nmf$months,
                              levels = c("four_month", "five_month", "six_month"))
 
-ggplot(compare_nmf, aes(x = data, y = model, col = district)) + geom_point() + theme_bw() +
-  facet_grid(months ~ nmf) + geom_abline(slope = 1, intercept = 0, lty = 2)
+ggplot(compare_nmf, aes(x = data, y = model, col = district)) + 
+  geom_point(aes(shape = months)) + 
+  theme_bw() +
+  facet_grid(. ~ nmf) + geom_abline(slope = 1, intercept = 0, lty = 2) +
+  xlim(c(0,100)) + ylim(c(0,100)) + 
+  labs(x = "Data seasonality", y = "Model seasonality")
 ggsave("output/nmf_adjustment.pdf", units = "cm", width = 20, height = 20, dpi = 300)
+ggsave("output/nmf_adjustment.png", units = "cm", width = 20, height = 10, dpi = 300)
 ggplot(compare_nmf, aes(x = data, y = model, col = district)) + geom_point() + theme_bw() +
   facet_grid(nmf ~ months) + geom_abline(slope = 1, intercept = 0, lty = 2) + 
   theme(legend.position = "bottom")
 ggsave("output/nmf_adjustment.png", units = "cm", width = 20, height = 15, dpi = 300)
+
+dplyr::filter(compare_nmf, nmf == "no NMF adjustment") %>% 
+  ggplot(aes(x = data, y = model, col = district)) + 
+  geom_point(aes(shape = months)) + 
+  theme_bw() +
+  geom_abline(slope = 1, intercept = 0, lty = 2) + 
+  xlim(c(0,100)) + ylim(c(0,100)) +
+  labs(x = "Seasonality in routine data", y = "Estimated seasonality in \ntransmission model")
+ggsave("output/seasonality_slide.png", width = 15, height = 12, units = "cm")
 
 out_agg_q95$adjustment <- "no NMF"
 out_agg_q95_nmf$adjustment <- "NMF"
@@ -654,20 +663,14 @@ ggplot() + geom_line(data = comparison_nmf, aes(x = date, y = under_5,
   labs(x = "Date", y = "Under 5 clinical incidence") +
   scale_fill_manual(values=c(val_1, val_2, val_3))
 
-ggplot() + geom_line(data = filter(comparison_nmf, district == "Nabilatuk"), aes(x = date, y = under_5,
+ggplot() + geom_line(data = filter(comparison_nmf, district == "Karenga"), aes(x = date, y = under_5,
                                                                                  group = source, col = source)) +
   facet_wrap(.~district, scales = "free_y") +
   theme_bw() + guides(col = guide_legend(title="Source")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   labs(x = "Date", y = "Under 5 clinical incidence") +
-  geom_vline(xintercept = c(as.Date("2022-06-01"),
-                            as.Date("2022-07-01"),
-                            as.Date("2022-08-01"),
-                            as.Date("2022-09-01"),
-                            as.Date("2022-10-01")), lty = 2) +
-  scale_fill_manual(values=c(val_1, val_2, val_3))
-
-
+  scale_fill_manual(values=c(val_1, val_2, val_3)) 
+ggsave("output/karenga.png", width = 12, height = 12, units = "cm")
 
 
 
@@ -752,12 +755,30 @@ rainfall_seasonality_fn <- function(rainfall_df, district, months = 3) {
 
 
 rainfall_seasonality <- data.frame(district = unique(karamoja_seasonality$district),
-                                   three_month = numeric(length(unique(karamoja_seasonality$district))))
+                                   rainfall_three_month = numeric(length(unique(karamoja_seasonality$district))))
 for(i in 1:length(unique(karamoja_seasonality$district))) {
   rainfall_seasonality$rainfall_three_month[i] <- rainfall_seasonality_fn(rainfall_df = rainfall, 
                                                                  district = rainfall_seasonality$district[i],
                                                                  months = 3)*100
+  rainfall_seasonality$rainfall_four_month[i] <- rainfall_seasonality_fn(rainfall_df = rainfall, 
+                                                                          district = rainfall_seasonality$district[i],
+                                                                          months = 4)*100
+  rainfall_seasonality$rainfall_five_month[i] <- rainfall_seasonality_fn(rainfall_df = rainfall, 
+                                                                          district = rainfall_seasonality$district[i],
+                                                                          months = 5)*100
+  
 }
+
+karamoja_seasonality <- data.frame(district = unique(karamoja_under_5$District))
+
+for(i in 1:nrow(karamoja_seasonality)) {
+  df <- data.frame(dplyr::filter(karamoja_under_5,
+                                 District == karamoja_seasonality$district[i]))
+  karamoja_seasonality$four_month[i] <- seasonality(data = df,months = 4)
+  karamoja_seasonality$five_month[i] <- seasonality(data = df,months = 5)
+  karamoja_seasonality$six_month[i] <- seasonality(data = df,months = 6)
+}
+
 karamoja_seasonality <- left_join(karamoja_seasonality, rainfall_seasonality)
 
 ggplot(karamoja_seasonality, aes(x = four_month, y = rainfall_three_month, col = district)) +
@@ -766,3 +787,33 @@ ggplot(karamoja_seasonality, aes(x = four_month, y = rainfall_three_month, col =
   labs(x = "Clinical cases in four consecutive months (%)",
        y = "Rainfall in three consecutive months (%)")
 
+model_seasonality <- data.frame(district = unique(output$district),
+                                model_four_month = numeric(length(unique(output$district))),
+                                model_five_month = numeric(length(unique(output$district))),
+                                model_six_month = numeric(length(unique(output$district))))
+for(i in 1:nrow(model_seasonality)) {
+  df <- data.frame(dplyr::filter(output,
+                                 district == model_seasonality$district[i]))
+  model_seasonality$model_four_month[i] <- model_seasonality_func(model_output = df, months = 4)
+  model_seasonality$model_five_month[i] <- model_seasonality_func(model_output = df, months = 5)
+  model_seasonality$model_six_month[i] <- model_seasonality_func(model_output = df, months = 6)
+}
+
+
+karamoja_seasonality <- left_join(karamoja_seasonality, model_seasonality, by = "district")
+
+ggplot(karamoja_seasonality, aes(x = model_four_month, y = rainfall_three_month, col = district)) +
+  geom_point() + theme_bw() + geom_abline(slope = 1, intercept = 0, lty = 2) +
+  xlim(c(40, 65)) + ylim(c(40, 65)) +
+  labs(x = "Model seasonality in four consecutive months (%)",
+       y = "Rainfall in three consecutive months (%)")
+ggplot(karamoja_seasonality, aes(x = model_four_month, y = four_month, col = district)) +
+  geom_point() + theme_bw() + geom_abline(slope = 1, intercept = 0, lty = 2) +
+  xlim(c(40, 65)) + ylim(c(40, 65)) +
+  labs(x = "Model seasonality in four consecutive months (%)",
+       y = "Data seasonality in four consecutive months (%)")
+ggplot(karamoja_seasonality, aes(x = four_month, y = rainfall_three_month, col = district)) +
+  geom_point() + theme_bw() + geom_abline(slope = 1, intercept = 0, lty = 2) +
+  xlim(c(40, 65)) + ylim(c(40, 65)) +
+  labs(x = "Data seasonality in four consecutive months (%)",
+       y = "Rainfall in three consecutive months (%)")
