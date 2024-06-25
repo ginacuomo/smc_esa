@@ -7,3 +7,4 @@ mrc-ide/cali
 # Package from CRAN
 ggplot2
 tidyverse
+terra
