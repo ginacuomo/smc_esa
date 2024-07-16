@@ -14,7 +14,8 @@ for(i in 1:length(districts)) {
   district <- districts[i]
   task_create_expr(orderly2::orderly_run("site_file",
                         parameters = list(district = district),
-                        echo = FALSE)) }
+                        echo = FALSE)) 
+  }
 # calibrate district specific EIR and add this to the site file
 for(i in 1:length(districts)) {
   district <- districts[i]
@@ -62,7 +63,11 @@ for(i in 1:length(districts)) {
                         echo = FALSE) )
 }
 
-
+## fails here -- debug this task Caused by error:
+# ! The value of 'district' from environment is not suitable as a lookup
+# - while evaluating environment:district
+# - within           latest(parameter:district == environment:district)
+# --- unsure what line this is 
 task_create_expr(orderly2::orderly_run("country_impact", parameters = list(calibrated = TRUE,
                                                           repetitions = 20)))
 
