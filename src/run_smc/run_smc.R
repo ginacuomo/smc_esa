@@ -1,8 +1,10 @@
-orderly2::orderly_strict_mode()
+# orderly2::orderly_strict_mode()
 orderly2::orderly_parameters(repetitions = 20,
                              district = NULL,
                              calibrated = NULL, 
-                             cycles = NULL) 
+                             cycles = NULL,
+                             extend_ages = FALSE, 
+                             transmission_impact = FALSE) 
 
 orderly2::orderly_resource("uga2.RDS")
 orderly2::orderly_dependency(
@@ -10,7 +12,8 @@ orderly2::orderly_dependency(
   "latest",
   c(deathrates_matrix.RDS = "deathrates_matrix.RDS",
     ages.RDS = "ages.RDS"))
-orderly2::orderly_artefact("SMC model run for district", "df_smc.RDS")
+orderly2::orderly_artefact(description = "SMC model run for district", 
+                           files = "df_smc.RDS")
 
 
 if(calibrated == TRUE) {
@@ -67,23 +70,44 @@ run_with_smc <- function(population, # population size
                          cycle,
                          # admin_days = c(0, 30, 60, 90, 120), # admin dates
                          alpha, # drug parameters | resistance
-                         beta) {# drug parameters | resistance
-  # same as previously
-  simparams <- get_parameters(
-    list(
-      human_population = population,
-      model_seasonality = TRUE, 
-      g0 = g0,
-      g = c(g1, g2, g3),
-      h = c(h1, h2, h3),
-      clinical_incidence_rendering_min_ages = age_min,
-      clinical_incidence_rendering_max_ages = age_max,
-      severe_incidence_rendering_min_ages = age_min,
-      severe_incidence_rendering_max_ages = age_max,
-      prevalence_rendering_min_ages = age_min,
-      prevalence_rendering_max_ages = age_max
+                         beta,
+                         transmission,
+                         age_extension) {# drug parameters | resistance
+  if(transmission == FALSE) {
+    simparams <- get_parameters(
+      list(
+        human_population = population,
+        model_seasonality = TRUE, 
+        g0 = g0,
+        g = c(g1, g2, g3),
+        h = c(h1, h2, h3),
+        clinical_incidence_rendering_min_ages = age_min,
+        clinical_incidence_rendering_max_ages = age_max,
+        severe_incidence_rendering_min_ages = age_min,
+        severe_incidence_rendering_max_ages = age_max,
+        prevalence_rendering_min_ages = age_min,
+        prevalence_rendering_max_ages = age_max
+      )
     )
-  )
+  } else if(transmission == TRUE) {
+    min_render <- c(age_min, age_max, 10*365)
+    max_render <- c(age_max, 10*365, 30*365)
+    simparams <- get_parameters(
+      list(
+        human_population = population,
+        model_seasonality = TRUE, 
+        g0 = g0,
+        g = c(g1, g2, g3),
+        h = c(h1, h2, h3),
+        clinical_incidence_rendering_min_ages = min_render,
+        clinical_incidence_rendering_max_ages = max_render,
+        severe_incidence_rendering_min_ages = min_render,
+        severe_incidence_rendering_max_ages = max_render,
+        prevalence_rendering_min_ages = min_render,
+        prevalence_rendering_max_ages = max_render
+      )
+    )
+  }
   
   simparams <- set_demography(
     parameters = simparams,
@@ -104,14 +128,25 @@ run_with_smc <- function(population, # population size
                          list(SP_AQ_params))
   
   # add smc
-  smcparams <- set_smc(
-    simparams,
-    drug = 1,
-    timesteps = smc_dates,
-    coverages = rep(.9, length(smc_dates)),
-    min_ages = rep(3 * 30, length(smc_dates)),
-    max_ages = rep(5 * 365-1, length(smc_dates))
-  )
+  if(age_extension == FALSE) {
+    smcparams <- set_smc(
+      simparams,
+      drug = 1,
+      timesteps = smc_dates,
+      coverages = rep(.9, length(smc_dates)),
+      min_ages = rep(3 * 30, length(smc_dates)),
+      max_ages = rep(5 * 365-1, length(smc_dates))
+    ) 
+  } else if(age_extension == TRUE) {
+    smcparams <- set_smc(
+      simparams,
+      drug = 1,
+      timesteps = smc_dates,
+      coverages = rep(.9, length(smc_dates)),
+      min_ages = rep(3 * 30, length(smc_dates)),
+      max_ages = rep(10 * 365-1, length(smc_dates))
+    )
+  }
   
   # use custom drug parameters from read in parameters
   smcparams$drug_prophylaxis_shape <- alpha
@@ -153,7 +188,7 @@ if(calibrated == FALSE) { # this has all sites whereas calibrated pulls in only 
 years <- 3
 year <- 365
 sim_length <- years * year
-human_population <- 25000 # rescale in post processing to actual population size
+human_population <- 100000 # rescale in post processing to actual population size
 age_min <- 1
 age_max <- 5 * 365
 
@@ -174,19 +209,35 @@ out <- run_with_smc(population = human_population,
                     deathrates_mat = deathrates_matrix,
                     cycle = cycles,
                     alpha = 3.930956, # in final version, alpha and beta will also be in the list
-                    beta = 30.38846)
-scale <- max(uga$population$pop[uga$population$year == 2022]/25000)
+                    beta = 30.38846,
+                    age_extension = extend_ages,
+                    transmission = transmission_impact)
+scale <- max(uga$population$pop[uga$population$year == 2022]/human_population)
 
 # rescale so that this represents the actual population size of districts (rather than 25000 as is in the model sim)
 out <- out %>% 
   dplyr::mutate(district = district,
-                n_1_1825 = n_1_1825*scale,
                 n_bitten = n_bitten * scale,
+                n_1_1825 = n_1_1825*scale,
                 n_inc_clinical_1_1825 = n_inc_clinical_1_1825 * scale,
                 p_inc_clinical_1_1825 = p_inc_clinical_1_1825 * scale,
                 n_inc_severe_1_1825 = n_inc_severe_1_1825 * scale,
                 p_inc_severe_1_1825 = p_inc_severe_1_1825 * scale,
                 n_detect_1_1825 = n_detect_1_1825 * scale,
-                p_detect_1_1825 = p_detect_1_1825 * scale)
+                p_detect_1_1825 = p_detect_1_1825 * scale,
+                n_1825_3650 = n_1825_3650*scale,
+                n_inc_clinical_1825_3650 = n_inc_clinical_1825_3650 * scale,
+                p_inc_clinical_1825_3650 = p_inc_clinical_1825_3650 * scale,
+                n_inc_severe_1825_3650 = n_inc_severe_1825_3650 * scale,
+                p_inc_severe_1825_3650 = p_inc_severe_1825_3650 * scale,
+                n_detect_1825_3650 = n_detect_1825_3650 * scale,
+                p_detect_1825_3650 = p_detect_1825_3650 * scale,
+                n_3650_10950 = n_3650_10950*scale,
+                n_inc_clinical_3650_10950 = n_inc_clinical_3650_10950 * scale,
+                p_inc_clinical_3650_10950 = p_inc_clinical_3650_10950 * scale,
+                n_inc_severe_3650_10950 = n_inc_severe_3650_10950 * scale,
+                p_inc_severe_3650_10950 = p_inc_severe_3650_10950 * scale,
+                n_detect_3650_10950 = n_detect_3650_10950 * scale,
+                p_detect_3650_10950 = p_detect_3650_10950 * scale)
 
 saveRDS(out, "df_smc.RDS")
