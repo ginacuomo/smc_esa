@@ -1,4 +1,5 @@
 require(umbrella)
+require(terra)
 orderly2::orderly_shared_resource("shape_file.RDS" = "shape_file.RDS")
 orderly2::orderly_artefact("Dataset of the daily chirps rainfall data based on the shape file",
                            "full_data.RDS")

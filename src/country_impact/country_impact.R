@@ -247,7 +247,8 @@ population_prev <- data.frame(district = unique(no_smc$district),
                          population = numeric(length(unique(no_smc$district))),
                          prev = numeric(length(unique(no_smc$district))),
                          eir = numeric(length(unique(no_smc$district))))
-for(i in 1:nrow(population)) {
+## error is in here
+for(i in 1:nrow(population_prev)) {
   district <- population_prev$district[i]
   files <- c("calibrated_site.RDS")
   names(files) <- file.path("data", paste0("site_", district, ".RDS"))
@@ -262,7 +263,7 @@ for(i in 1:nrow(population)) {
 
 u5 <- 0.1677317 # from UN WPP estimates for Uganda
 
-doses_district <- population %>%
+doses_district <- population_prev %>%
   dplyr::mutate(under_5 = u5,
                 coverage = "90%",
                 pop_under_5 = population * u5,
