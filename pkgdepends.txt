@@ -1,5 +1,5 @@
 # Specific version of malaria simulation, via a tag
-mrc-ide/malariasimulation@v1.6.0
+mrc-ide/malariasimulation@v2.0.1
 mrc-ide/orderly2
 mrc-ide/umbrella
 mrc-ide/cali
