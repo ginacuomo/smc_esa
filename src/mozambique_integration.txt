@@ -1,0 +1,23 @@
+# tasks in orderly - what needs updating to add Mozambique code?
+# based on launch all to get the order of the workflow
+
+Read in districts
+run {demography}
+run {merge_rasters}
+run {seasonality parameters}
+
+# I think that country integration needs to happen from here - may need to still add country as a param for all tasks
+run {site file} 
+run {calibrate eir}
+
+# launch model runs
+run {counterfactual}
+run {smc} # now have age expansion and also transmission impact assessment
+
+# evaluate model runs - unsure how much will require editing here
+analyse impact
+country impact
+map impact 
+
+# figures - this was thesis figures and will need a bespoke solution for Mozambique figures
+run figures
