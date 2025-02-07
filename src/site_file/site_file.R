@@ -3,7 +3,7 @@ orderly2::orderly_strict_mode()
 orderly2::orderly_parameters(district = NULL, country = NULL)
 orderly2::orderly_resource("data/UGA_spatial_test_data_1.RDS")
 orderly2::orderly_resource("data/uga2.RDS")
-orderly2::orderly_resource("data/moz_parameters.RDS")
+orderly2::orderly_shared_resource("moz.rds")
 
 if((country %in% c("Mozambique", "Uganda")) == FALSE) {
   stop("Invalid country")
@@ -150,10 +150,81 @@ if(country == "Uganda") {
   saveRDS(site_file, "site_file.RDS")
 } else if(country == "Mozambique") {
   
-  # output from Matt's analysis 
-  all_districts <- readRDS("data/moz_parameters.RDS")
+  moz <- readRDS("moz.rds")
   
-  dist <- all_districts[[district]]
+  # site file has the following elements in the list:
+  # country, admin level, sites, cases_deaths (national), prevalence, interventions, population, 
+  # demography, vectors, pyrethroid resistance, seasonality, eir
   
-  saveRDS(dist, "site_file.RDS")
+  # create tibbles in the list for the site file for this district
+  sites <- moz$sites |>
+    dplyr::filter(name_2 == district) |>
+    dplyr::filter(urban_rural == "rural")
+  cases_deaths <- moz$cases_deaths
+  prevalence <- moz$prevalence |>
+    dplyr::filter(name_2 == district) |>
+    dplyr::filter(urban_rural == "rural")
+  
+  interventions <- moz$interventions |>
+    dplyr::filter(name_2 == district) |>
+    dplyr::filter(urban_rural == "rural")
+  
+  population_total <- moz$population$population_total |>
+    dplyr::filter(name_2 == district) |>
+    dplyr::filter(urban_rural == "rural")
+  population_by_age <- moz$population$population_by_age |>
+    dplyr::filter(name_2 == district) |>
+    dplyr::filter(urban_rural == "rural")
+  population <- list(population_total,
+                     population_by_age)
+  
+  demography <- moz$demography
+  
+  vector_species <- moz$vectors$vector_species |>
+    dplyr::filter(name_2 == district) |>
+    dplyr::filter(urban_rural == "rural")
+  pyrethroid_resistance <- moz$vectors$pyrethroid_resistance |>
+    dplyr::filter(name_2 == district) 
+  
+  vectors <- list(vector_species, pyrethroid_resistance)
+  
+  # no pyrethroid resistance in Uganda
+  
+  seasonality_parameters <- moz$seasonality$seasonality_parameters |>
+    dplyr::filter(name_2 == district) |>
+    dplyr::filter(urban_rural == "rural")
+    
+  monthly_rainfall <- moz$seasonality$monthly_rainfall |>
+    dplyr::filter(name_2 == district) |>
+    dplyr::filter(urban_rural == "rural")
+  
+  fourier_prediction <- moz$seasonality$fourier_prediction |>
+    dplyr::filter(name_2 == district) |>
+    dplyr::filter(urban_rural == "rural")
+  
+  seasonality <- list(seasonality_parameters,
+                      monthly_rainfall,
+                      fourier_prediction)
+  
+  eir <- moz$eir |>
+    dplyr::filter(name_2 == district) |>
+    dplyr::filter(urban_rural == "rural")
+  
+  # country, admin level, sites, cases_deaths (national), prevalence, interventions, population, 
+  # demography, vectors, pyrethroid resistance, seasonality, eir
+  site_file <- list(country = "UGA",
+                    admin_level = 1,
+                    sites = sites,
+                    cases_deaths = cases_deaths,
+                    prevalence = prevalence,
+                    interventions = interventions,
+                    population = population,
+                    # demography = demography,
+                    vectors = vectors,
+                    pyrethroid_resistance = pyrethroid_resistance,
+                    seasonality = seasonality,
+                    eir = eir)
+                    
+  saveRDS(site_file, "site_file.RDS")
+                    
 }
