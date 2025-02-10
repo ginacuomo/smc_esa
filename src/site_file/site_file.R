@@ -175,8 +175,8 @@ if(country == "Uganda") {
   population_by_age <- moz$population$population_by_age |>
     dplyr::filter(name_2 == district) |>
     dplyr::filter(urban_rural == "rural")
-  population <- list(population_total,
-                     population_by_age)
+  population <- list("population_total" = population_total,
+                     "population_by_age" = population_by_age)
   
   demography <- moz$demography
   
@@ -186,7 +186,8 @@ if(country == "Uganda") {
   pyrethroid_resistance <- moz$vectors$pyrethroid_resistance |>
     dplyr::filter(name_2 == district) 
   
-  vectors <- list(vector_species, pyrethroid_resistance)
+  vectors <- list("vector_species" = vector_species, 
+                  "pyrethroid_resistance" = pyrethroid_resistance)
   
   # no pyrethroid resistance in Uganda
   
@@ -202,9 +203,9 @@ if(country == "Uganda") {
     dplyr::filter(name_2 == district) |>
     dplyr::filter(urban_rural == "rural")
   
-  seasonality <- list(seasonality_parameters,
-                      monthly_rainfall,
-                      fourier_prediction)
+  seasonality <- list("seasonality_parameters" = seasonality_parameters,
+                      "monthly_rainfall" = monthly_rainfall,
+                      "fourier_prediction" = fourier_prediction)
   
   eir <- moz$eir |>
     dplyr::filter(name_2 == district) |>
