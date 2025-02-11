@@ -87,6 +87,8 @@ run_counterfactual <- function(population, # population size
     perennial_funestus_params <- malariasimulation::fun_params
     perennial_funestus_params$species <- "perennial_funestus"
     
+    vector_proportions <- c(1-prop_perennial, prop_perennial)
+    
     simparams <- set_species(simparams, list(
       seasonal_funestus = seasonal_funestus_params,
       perennial_funestus = perennial_funestus_params),
@@ -208,3 +210,70 @@ out <- out %>%
                 p_detect_lm_1_1825 = p_detect_lm_1_1825 * scale)
 
 saveRDS(out, "df.RDS")
+
+
+## comparing outputs - delete once comparison is completed
+out_0.5 <- run_counterfactual(population = human_population,
+                              sim_length = sim_length,
+                              reps = 5,
+                              g0 = params$g0,
+                              g1 = params$g1,
+                              g2 = params$g2,
+                              g3 = params$g3,
+                              h1 = params$h1,
+                              h2 = params$h2,
+                              h3 = params$h3,
+                              eir = params$eir,
+                              age_min = age_min,
+                              age_max = age_max,
+                              deathrates_mat = deathrates_matrix,
+                              manipulate_cc = TRUE,
+                              cc_matrix = params$cc_matrix,
+                              prop_perennial = 0.5)
+out_0.65 <- run_counterfactual(population = human_population,
+                               sim_length = sim_length,
+                               reps = 5,
+                               g0 = params$g0,
+                               g1 = params$g1,
+                               g2 = params$g2,
+                               g3 = params$g3,
+                               h1 = params$h1,
+                               h2 = params$h2,
+                               h3 = params$h3,
+                               eir = params$eir,
+                               age_min = age_min,
+                               age_max = age_max,
+                               deathrates_mat = deathrates_matrix,
+                               manipulate_cc = TRUE,
+                               cc_matrix = params$cc_matrix,
+                               prop_perennial = 0.65)
+out_0.8 <- run_counterfactual(population = human_population,
+                              sim_length = sim_length,
+                              reps = 5,
+                              g0 = params$g0,
+                              g1 = params$g1,
+                              g2 = params$g2,
+                              g3 = params$g3,
+                              h1 = params$h1,
+                              h2 = params$h2,
+                              h3 = params$h3,
+                              eir = params$eir,
+                              age_min = age_min,
+                              age_max = age_max,
+                              deathrates_mat = deathrates_matrix,
+                              manipulate_cc = TRUE,
+                              cc_matrix = params$cc_matrix,
+                              prop_perennial = 0.8)
+out_0.5$prop_perennial <- 0.5
+out_0.65$prop_perennial <- 0.65
+out_0.8$prop_perennial <- 0.8
+
+out_compare <- rbind(out_0.5, out_0.65, out_0.8)
+out_compare$prop_perennial <- factor(out_compare$prop_perennial)
+out_summarised <- out_compare |>
+  dplyr::group_by(timestep, prop_perennial) |>
+  dplyr::reframe(incidence = median(n_inc_clinical_1_1825))
+
+ggplot(out_summarised, aes(x = timestep, y = incidence, col = prop_perennial)) + 
+  geom_line() + theme_bw() + scale_color_discrete()
+ggsave("prop_perennial.pdf", dpi = 300, width = 25, height = 15, units = "cm")
