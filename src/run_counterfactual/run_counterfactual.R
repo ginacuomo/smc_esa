@@ -1,13 +1,16 @@
 orderly2::orderly_strict_mode()
 orderly2::orderly_resource("uga2.RDS")
+orderly2::orderly_shared_resource("moz.rds")
 orderly2::orderly_dependency(
   "demography",
   "latest",
   c(deathrates_matrix.RDS = "deathrates_matrix.RDS",
     ages.RDS = "ages.RDS"))
-orderly2::orderly_artefact("Counterfactual model run for Uganda", "df.RDS")
+orderly2::orderly_artefact(description = "Counterfactual model run for Uganda", 
+                           files = "df.RDS")
 orderly2::orderly_parameters(repetitions = 20,
                              district = NULL,
+                             country = NULL,
                              calibrated = NULL) 
 
 if(calibrated == TRUE) {
@@ -25,11 +28,19 @@ library(tidyverse)
 ages <- readRDS("ages.RDS")
 deathrates_matrix <- readRDS("deathrates_matrix.RDS")
 
+if((country %in% c("Mozambique", "Uganda")) == FALSE) {
+  stop("Invalid country")
+}
+
 # Uganda site files
-if(calibrated == FALSE) {
-  uga <- readRDS("uga2.RDS")
-} else if(calibrated == TRUE) {
-  uga <- readRDS("calibrated_site.RDS")
+if(country == "Uganda") {
+  if(calibrated == FALSE) {
+    site <- readRDS("uga2.RDS")
+  } else if(calibrated == TRUE) {
+    site <- readRDS("calibrated_site.RDS")
+  }
+} else if(country == "Mozambique") {
+  site <- readRDS("calibrated_site.RDS")
 }
 
 run_counterfactual <- function(population, # population size
@@ -41,9 +52,11 @@ run_counterfactual <- function(population, # population size
                                g1, g2, g3,
                                h1, h2, h3,
                                eir, # district EIR
-                               deathrates_mat) # matrix of deathrates until demography is fixed) 
+                               deathrates_mat,
+                               manipulate_cc = FALSE,
+                               cc_matrix = NULL,
+                               prop_perennial = NULL) # matrix of deathrates until demography is fixed) 
 {
-  
   simparams <- get_parameters(
     list(
       human_population = population,
@@ -67,6 +80,23 @@ run_counterfactual <- function(population, # population size
     deathrates = deathrates_mat
   )
   
+  if (manipulate_cc == TRUE) {
+    seasonal_funestus_params <- malariasimulation::fun_params
+    seasonal_funestus_params$species <- "seasonal_funestus"
+    
+    perennial_funestus_params <- malariasimulation::fun_params
+    perennial_funestus_params$species <- "perennial_funestus"
+    
+    simparams <- set_species(simparams, list(
+      seasonal_funestus = seasonal_funestus_params,
+      perennial_funestus = perennial_funestus_params),
+      proportions = vector_proportions) |>
+      set_carrying_capacity(
+        timesteps = 1:(sim_length),
+        carrying_capacity_scalers <- cc_matrix
+      )  
+  }
+  
   simparams <- set_equilibrium(simparams, eir)
   
   out <- run_simulation_with_repetitions(sim_length,
@@ -76,65 +106,105 @@ run_counterfactual <- function(population, # population size
   return(out)
 }
 
-if(calibrated == FALSE) { # this has all sites whereas calibrated pulls in only one site 
-  index <- which(uga$seasonality$name_1 == district)
-  # every site has a rural option - urban and rural have the same seasonality params so only eir needs filters
-  
-  params <- list(g0 = uga$seasonality$g0[index],
-                 g1 = uga$seasonality$g1[index],
-                 g2 = uga$seasonality$g2[index],
-                 g3 = uga$seasonality$g3[index],
-                 h1 = uga$seasonality$h1[index],
-                 h2 = uga$seasonality$h2[index],
-                 h3 = uga$seasonality$h3[index],
-                 eir = uga$eir$eir[uga$eir$name_1 == district & 
-                   uga$eir$urban_rural == "rural" &
-                     uga$eir$spp == "pf"])
-} else if(calibrated == TRUE) {
-  params <- list(g0 = uga$seasonality$g0,
-                 g1 = uga$seasonality$g1,
-                 g2 = uga$seasonality$g2,
-                 g3 = uga$seasonality$g3,
-                 h1 = uga$seasonality$h1,
-                 h2 = uga$seasonality$h2,
-                 h3 = uga$seasonality$h3,
-                 eir = uga$eir$eir)
+if(country == "Uganda") {
+  if(calibrated == FALSE) { # this has all sites whereas calibrated pulls in only one site 
+    index <- which(site$seasonality$name_1 == district)
+    # every site has a rural option - urban and rural have the same seasonality params so only eir needs filters
+    
+    params <- list(g0 = site$seasonality$g0[index],
+                   g1 = site$seasonality$g1[index],
+                   g2 = uga$seasonality$g2[index],
+                   g3 = site$seasonality$g3[index],
+                   h1 = site$seasonality$h1[index],
+                   h2 = site$seasonality$h2[index],
+                   h3 = site$seasonality$h3[index],
+                   eir = site$eir$eir[site$eir$name_1 == district & 
+                                        site$eir$urban_rural == "rural" &
+                                        site$eir$spp == "pf"])
+  } else if(calibrated == TRUE) {
+    params <- list(g0 = site$seasonality$g0,
+                   g1 = site$seasonality$g1,
+                   g2 = site$seasonality$g2,
+                   g3 = site$seasonality$g3,
+                   h1 = site$seasonality$h1,
+                   h2 = site$seasonality$h2,
+                   h3 = site$seasonality$h3,
+                   eir = site$eir$eir)
+  }
+} else if(country == "Mozambique") {
+  params <- list(g0 = site$seasonality$seasonality_parameters$g0,
+                 g1 = site$seasonality$seasonality_parameters$g1,
+                 g2 = site$seasonality$seasonality_parameters$g2,
+                 g3 = site$seasonality$seasonality_parameters$g3,
+                 h1 = site$seasonality$seasonality_parameters$h1,
+                 h2 = site$seasonality$seasonality_parameters$h2,
+                 h3 = site$seasonality$seasonality_parameters$h3,
+                 eir = site$eir$eir,
+                 cc_matrix = as.matrix(site$seasonality$multiplier_matrix[,c(3,4)]), # needs to be a matrix otherwise causes error
+                 prop_perennial = site$seasonality$proportion_perennial)
 }
 
 years <- 3
 year <- 365
 sim_length <- years * year
-human_population <- 25000 # rescale in post processing to actual population size
+human_population <- 50000 # rescale in post processing to actual population size
 
 age_min <- 1
 age_max <- 5 * 365 # ages for SMC
 
-out <- run_counterfactual(population = human_population,
-                            sim_length = sim_length,
-                            reps = repetitions,
-                            g0 = params$g0,
-                            g1 = params$g1,
-                            g2 = params$g2,
-                            g3 = params$g3,
-                            h1 = params$h1,
-                            h2 = params$h2,
-                            h3 = params$h3,
-                            eir = params$eir,
-                            age_min = age_min,
-                            age_max = age_max,
-                            deathrates_mat = deathrates_matrix)
-scale <- max(uga$population$pop[uga$population$year == 2022]/25000) # hoping to fix the bug
+if(country == "Uganda") {
+  out <-  run_counterfactual(population = human_population,
+                             sim_length = sim_length,
+                             reps = repetitions,
+                             g0 = params$g0,
+                             g1 = params$g1,
+                             g2 = params$g2,
+                             g3 = params$g3,
+                             h1 = params$h1,
+                             h2 = params$h2,
+                             h3 = params$h3,
+                             eir = params$eir,
+                             age_min = age_min,
+                             age_max = age_max,
+                             deathrates_mat = deathrates_matrix)
+  # site files have different set ups
+  scale <- max(site$population$pop[site$population$year == 2022]/human_population) 
+} else if(country == "Mozambique") {
+  out <-  run_counterfactual(population = human_population,
+                             sim_length = sim_length,
+                             reps = repetitions,
+                             g0 = params$g0,
+                             g1 = params$g1,
+                             g2 = params$g2,
+                             g3 = params$g3,
+                             h1 = params$h1,
+                             h2 = params$h2,
+                             h3 = params$h3,
+                             eir = params$eir,
+                             age_min = age_min,
+                             age_max = age_max,
+                             deathrates_mat = deathrates_matrix,
+                             manipulate_cc = TRUE,
+                             cc_matrix = params$cc_matrix,
+                             prop_perennial = params$prop_perennial)
+  scale <- site$population$population_total |>
+    dplyr::filter(urban_rural == "rural") |>
+    dplyr::filter(year == 2022) |>
+    dplyr::pull(pop)
+  scale <- scale/human_population
+}
+
 
 # rescale so that this represents the actual population size of districts (rather than 25000 as is in the model sim)
 out <- out %>% 
   dplyr::mutate(district = district,
-                n_1_1825 = n_1_1825*scale,
+                n_age_1_1825 = n_age_1_1825*scale,
                 n_bitten = n_bitten * scale,
                 n_inc_clinical_1_1825 = n_inc_clinical_1_1825 * scale,
                 p_inc_clinical_1_1825 = p_inc_clinical_1_1825 * scale,
                 n_inc_severe_1_1825 = n_inc_severe_1_1825 * scale,
                 p_inc_severe_1_1825 = p_inc_severe_1_1825 * scale,
-                n_detect_1_1825 = n_detect_1_1825 * scale,
-                p_detect_1_1825 = p_detect_1_1825 * scale)
+                n_detect_lm_1_1825 = n_detect_lm_1_1825 * scale,
+                p_detect_lm_1_1825 = p_detect_lm_1_1825 * scale)
 
 saveRDS(out, "df.RDS")
