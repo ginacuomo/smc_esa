@@ -52,35 +52,25 @@ run_counterfactual <- function(population, # population size
                                g1, g2, g3,
                                h1, h2, h3,
                                eir, # district EIR
-                               deathrates_mat,
+                               deathrates_mat, # matrix of deathrates until demography is fixed) 
                                manipulate_cc = FALSE,
                                cc_matrix = NULL,
-                               prop_perennial = NULL) # matrix of deathrates until demography is fixed) 
+                               prop_perennial = NULL) 
 {
-  simparams <- get_parameters(
-    list(
-      human_population = population,
-      model_seasonality = TRUE, 
-      g0 = g0,
-      g = c(g1, g2, g3),
-      h = c(h1, h2, h3),
-      clinical_incidence_rendering_min_ages = age_min,
-      clinical_incidence_rendering_max_ages = age_max,
-      severe_incidence_rendering_min_ages = age_min,
-      severe_incidence_rendering_max_ages = age_max,
-      prevalence_rendering_min_ages = age_min,
-      prevalence_rendering_max_ages = age_max
-    )
-  )
-  
-  simparams <- set_demography(
-    parameters = simparams,
-    agegroups = ages,
-    timesteps = 0,
-    deathrates = deathrates_mat
-  )
   
   if (manipulate_cc == TRUE) {
+    simparams <- get_parameters(
+      list(
+        human_population = population,
+        clinical_incidence_rendering_min_ages = age_min,
+        clinical_incidence_rendering_max_ages = age_max,
+        severe_incidence_rendering_min_ages = age_min,
+        severe_incidence_rendering_max_ages = age_max,
+        prevalence_rendering_min_ages = age_min,
+        prevalence_rendering_max_ages = age_max
+      )
+    )
+    
     seasonal_funestus_params <- malariasimulation::fun_params
     seasonal_funestus_params$species <- "seasonal_funestus"
     
@@ -97,6 +87,22 @@ run_counterfactual <- function(population, # population size
         timesteps = 1:(sim_length),
         carrying_capacity_scalers <- cc_matrix
       )  
+  } else if (manipulate_cc == FALSE) {
+    simparams <- get_parameters(
+      list(
+        human_population = population,
+        model_seasonality = TRUE,
+        g0 = g0,
+        g = c(g1, g2, g3),
+        h = c(h1, h2, h3),
+        clinical_incidence_rendering_min_ages = age_min,
+        clinical_incidence_rendering_max_ages = age_max,
+        severe_incidence_rendering_min_ages = age_min,
+        severe_incidence_rendering_max_ages = age_max,
+        prevalence_rendering_min_ages = age_min,
+        prevalence_rendering_max_ages = age_max
+      )
+    )
   }
   
   simparams <- set_equilibrium(simparams, eir)
@@ -277,3 +283,23 @@ out_summarised <- out_compare |>
 ggplot(out_summarised, aes(x = timestep, y = incidence, col = prop_perennial)) + 
   geom_line() + theme_bw() + scale_color_discrete()
 ggsave("prop_perennial.pdf", dpi = 300, width = 25, height = 15, units = "cm")
+
+
+out_1.0 <- run_counterfactual(population = human_population,
+                              sim_length = sim_length,
+                              reps = 5,
+                              g0 = params$g0,
+                              g1 = params$g1,
+                              g2 = params$g2,
+                              g3 = params$g3,
+                              h1 = params$h1,
+                              h2 = params$h2,
+                              h3 = params$h3,
+                              eir = params$eir,
+                              age_min = age_min,
+                              age_max = age_max,
+                              deathrates_mat = deathrates_matrix,
+                              manipulate_cc = TRUE,
+                              cc_matrix = params$cc_matrix,
+                              prop_perennial = 1.0)
+ggplot(out_1.0, aes(x = timestep, y = n_inc_clinical_1_1825)) + theme_bw()
