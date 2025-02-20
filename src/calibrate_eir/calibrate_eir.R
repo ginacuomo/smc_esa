@@ -93,9 +93,9 @@ if(country == "Uganda") {
   orderly2::orderly_resource("data/cc_multiplier_df.RDS")
   # need to get this to look like a standard site file in order for the subsequent tasks to work
   dist_params <- readRDS("data/key_parameter_df.RDS") |> 
-    dplyr::filter(district_reconciled == district)
+    dplyr::filter(district_gadm_rain == district)
   multiplier_matrix <- readRDS("data/cc_multiplier_df.rds") |> 
-    dplyr::filter(district_reconciled == district)
+    dplyr::filter(district_gadm_rain == district)
   
   site_file$eir$eir <- dist_params$calibrated_eir
   
