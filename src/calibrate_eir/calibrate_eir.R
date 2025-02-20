@@ -89,12 +89,13 @@ if(country == "Uganda") {
   saveRDS(calibrated_site, "calibrated_site.RDS")
 } else if(country == "Mozambique") {
   # file names will need fixing afterwards
-  orderly2::orderly_resource("data/mandimba/key_parameter_df.rds") 
-  orderly2::orderly_resource("data/mandimba/cc_multiplier_df.rds")
+  orderly2::orderly_resource("data/key_parameter_df.RDS") 
+  orderly2::orderly_resource("data/cc_multiplier_df.RDS")
   # need to get this to look like a standard site file in order for the subsequent tasks to work
-  dist_params <- readRDS("data/mandimba/key_parameter_df.rds") |> # will need to update this
+  dist_params <- readRDS("data/key_parameter_df.RDS") |> 
     dplyr::filter(district_reconciled == district)
-  multiplier_matrix <- readRDS("data/mandimba/cc_multiplier_df.rds")
+  multiplier_matrix <- readRDS("data/cc_multiplier_df.rds") |> 
+    dplyr::filter(district_reconciled == district)
   
   site_file$eir$eir <- dist_params$calibrated_eir
   

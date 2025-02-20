@@ -6,7 +6,7 @@ orderly2::orderly_dependency(
   "latest",
   c(deathrates_matrix.RDS = "deathrates_matrix.RDS",
     ages.RDS = "ages.RDS"))
-orderly2::orderly_artefact(description = "Counterfactual model run for Uganda", 
+orderly2::orderly_artefact(description = "Counterfactual model run", 
                            files = "df.RDS")
 orderly2::orderly_parameters(repetitions = 20,
                              district = NULL,
@@ -32,7 +32,7 @@ if((country %in% c("Mozambique", "Uganda")) == FALSE) {
   stop("Invalid country")
 }
 
-# Uganda site files
+# site files
 if(country == "Uganda") {
   if(calibrated == FALSE) {
     site <- readRDS("uga2.RDS")
@@ -140,6 +140,9 @@ if(country == "Uganda") {
                    eir = site$eir$eir)
   }
 } else if(country == "Mozambique") {
+  cc_matrix <- site$seasonality$multiplier_matrix |>
+    dplyr::select(seasonal_vector_multipliers, perennial_vector_multipliers) |>
+    as.matrix()
   params <- list(g0 = site$seasonality$seasonality_parameters$g0,
                  g1 = site$seasonality$seasonality_parameters$g1,
                  g2 = site$seasonality$seasonality_parameters$g2,
@@ -148,7 +151,7 @@ if(country == "Uganda") {
                  h2 = site$seasonality$seasonality_parameters$h2,
                  h3 = site$seasonality$seasonality_parameters$h3,
                  eir = site$eir$eir,
-                 cc_matrix = as.matrix(site$seasonality$multiplier_matrix[,c(3,4)]), # needs to be a matrix otherwise causes error
+                 cc_matrix = cc_matrix, # needs to be a matrix otherwise causes error
                  prop_perennial = site$seasonality$proportion_perennial)
 }
 
@@ -178,7 +181,7 @@ if(country == "Uganda") {
   # site files have different set ups
   scale <- max(site$population$pop[site$population$year == 2022]/human_population) 
 } else if(country == "Mozambique") {
-  out <-  run_counterfactual(population = human_population,
+  out <- run_counterfactual(population = human_population,
                              sim_length = sim_length,
                              reps = repetitions,
                              g0 = params$g0,
@@ -216,90 +219,3 @@ out <- out %>%
                 p_detect_lm_1_1825 = p_detect_lm_1_1825 * scale)
 
 saveRDS(out, "df.RDS")
-
-
-## comparing outputs - delete once comparison is completed
-out_0.5 <- run_counterfactual(population = human_population,
-                              sim_length = sim_length,
-                              reps = 5,
-                              g0 = params$g0,
-                              g1 = params$g1,
-                              g2 = params$g2,
-                              g3 = params$g3,
-                              h1 = params$h1,
-                              h2 = params$h2,
-                              h3 = params$h3,
-                              eir = params$eir,
-                              age_min = age_min,
-                              age_max = age_max,
-                              deathrates_mat = deathrates_matrix,
-                              manipulate_cc = TRUE,
-                              cc_matrix = params$cc_matrix,
-                              prop_perennial = 0.5)
-out_0.65 <- run_counterfactual(population = human_population,
-                               sim_length = sim_length,
-                               reps = 5,
-                               g0 = params$g0,
-                               g1 = params$g1,
-                               g2 = params$g2,
-                               g3 = params$g3,
-                               h1 = params$h1,
-                               h2 = params$h2,
-                               h3 = params$h3,
-                               eir = params$eir,
-                               age_min = age_min,
-                               age_max = age_max,
-                               deathrates_mat = deathrates_matrix,
-                               manipulate_cc = TRUE,
-                               cc_matrix = params$cc_matrix,
-                               prop_perennial = 0.65)
-out_0.8 <- run_counterfactual(population = human_population,
-                              sim_length = sim_length,
-                              reps = 5,
-                              g0 = params$g0,
-                              g1 = params$g1,
-                              g2 = params$g2,
-                              g3 = params$g3,
-                              h1 = params$h1,
-                              h2 = params$h2,
-                              h3 = params$h3,
-                              eir = params$eir,
-                              age_min = age_min,
-                              age_max = age_max,
-                              deathrates_mat = deathrates_matrix,
-                              manipulate_cc = TRUE,
-                              cc_matrix = params$cc_matrix,
-                              prop_perennial = 0.8)
-out_0.5$prop_perennial <- 0.5
-out_0.65$prop_perennial <- 0.65
-out_0.8$prop_perennial <- 0.8
-
-out_compare <- rbind(out_0.5, out_0.65, out_0.8)
-out_compare$prop_perennial <- factor(out_compare$prop_perennial)
-out_summarised <- out_compare |>
-  dplyr::group_by(timestep, prop_perennial) |>
-  dplyr::reframe(incidence = median(n_inc_clinical_1_1825))
-
-ggplot(out_summarised, aes(x = timestep, y = incidence, col = prop_perennial)) + 
-  geom_line() + theme_bw() + scale_color_discrete()
-ggsave("prop_perennial.pdf", dpi = 300, width = 25, height = 15, units = "cm")
-
-
-out_1.0 <- run_counterfactual(population = human_population,
-                              sim_length = sim_length,
-                              reps = 5,
-                              g0 = params$g0,
-                              g1 = params$g1,
-                              g2 = params$g2,
-                              g3 = params$g3,
-                              h1 = params$h1,
-                              h2 = params$h2,
-                              h3 = params$h3,
-                              eir = params$eir,
-                              age_min = age_min,
-                              age_max = age_max,
-                              deathrates_mat = deathrates_matrix,
-                              manipulate_cc = TRUE,
-                              cc_matrix = params$cc_matrix,
-                              prop_perennial = 1.0)
-ggplot(out_1.0, aes(x = timestep, y = n_inc_clinical_1_1825)) + theme_bw()
