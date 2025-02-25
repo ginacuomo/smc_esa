@@ -1,6 +1,6 @@
 # orderly set up
 orderly2::orderly_strict_mode()
-orderly2::orderly_parameters(district = NULL, country = NULL)
+orderly2::orderly_parameters(district = NULL, country = NULL, calibrated = TRUE)
 # pull in the seasonality parameters from this district
 orderly2::orderly_dependency("site_file",
                              "latest(parameter:district == this:district) ",

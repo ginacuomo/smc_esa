@@ -48,3 +48,13 @@ for(i in 1:length(districts)) {
                                           cycles = 4),
                         echo = FALSE) 
 }
+
+for(i in 1:length(districts)) {
+  district <- districts[i]
+  orderly2::orderly_run("analyse_impact",
+                        parameters = list(district = district,
+                                          country = country,
+                                          calibrated = TRUE,
+                                          repetitions = 20),
+                        echo = FALSE) 
+}
