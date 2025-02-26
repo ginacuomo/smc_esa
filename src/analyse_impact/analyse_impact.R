@@ -3,7 +3,8 @@ orderly2::orderly_strict_mode()
 orderly2::orderly_parameters(repetitions = 20,
                              district = NULL,
                              country = NULL,
-                             calibrated = NULL) 
+                             calibrated = NULL,
+                             coverage = 0.8) 
 
 orderly2::orderly_dependency(
   "run_smc",
@@ -11,7 +12,8 @@ orderly2::orderly_dependency(
        && parameter:country == this:country
        && parameter:calibrated == this:calibrated 
        && parameter:repetitions == this:repetitions 
-       && parameter:cycles == 4)",
+       && parameter:cycles == 4
+       && parameter:coverage == this:coverage)",
   c(df_smc_4.RDS = "df_smc.RDS"))
 # some dependencies are country specific - only Uganda sims contain multiple cycle comparisons
 if (country == "Uganda") {

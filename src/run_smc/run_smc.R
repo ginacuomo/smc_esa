@@ -8,11 +8,15 @@ orderly2::orderly_dependency(
     ages.RDS = "ages.RDS"))
 orderly2::orderly_artefact(description = "SMC model run", 
                            files = "df_smc.RDS")
+
+# need to integrate the changes looking at extending the age range and transmission impacts from main branch
+# unsure why when I branched from main these edits were missed
 orderly2::orderly_parameters(repetitions = 20,
                              district = NULL,
                              country = NULL,
                              cycles = NULL,
-                             calibrated = NULL) 
+                             calibrated = NULL, 
+                             coverage = 0.8) 
 
 
 if(calibrated == TRUE) {
@@ -147,7 +151,7 @@ run_smc <- function(population, # population size
     simparams,
     drug = 1,
     timesteps = smc_dates,
-    coverages = rep(.9, length(smc_dates)),
+    coverages = rep(coverage, length(smc_dates)),  # use the coverage parameter
     min_ages = rep(3 * 30, length(smc_dates)),
     max_ages = rep(5 * 365-1, length(smc_dates))
   )

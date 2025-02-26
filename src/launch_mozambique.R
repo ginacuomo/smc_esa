@@ -45,7 +45,8 @@ for(i in 1:length(districts)) {
                                           country = country,
                                           calibrated = TRUE,
                                           repetitions = 20,
-                                          cycles = 4),
+                                          cycles = 4,
+                                          coverage = 0.8),
                         echo = FALSE) 
 }
 
@@ -55,6 +56,7 @@ for(i in 1:length(districts)) {
                         parameters = list(district = district,
                                           country = country,
                                           calibrated = TRUE,
-                                          repetitions = 20),
+                                          repetitions = 20,
+                                          coverage = 0.8),
                         echo = FALSE) 
 }
