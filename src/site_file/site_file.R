@@ -3,6 +3,7 @@ orderly2::orderly_strict_mode()
 orderly2::orderly_parameters(district = NULL, country = NULL)
 orderly2::orderly_resource("data/UGA_spatial_test_data_1.RDS")
 orderly2::orderly_resource("data/uga2.RDS")
+orderly2::orderly_shared_resource("moz_districts.RDS")
 orderly2::orderly_shared_resource("moz.rds")
 
 if((country %in% c("Mozambique", "Uganda")) == FALSE) {
@@ -175,6 +176,43 @@ if(country == "Uganda") {
   population_by_age <- moz$population$population_by_age |>
     dplyr::filter(name_2 == district) |>
     dplyr::filter(urban_rural == "rural")
+  # Mandimba and Mecanhelas have incorrect population sizes
+  if(district == "Mandimba") {
+    # calculate what the population needs to be scaled by
+    total_pop <- 211979
+    site_pop <- population_total |>
+      dplyr::filter(year == 2017) |>
+      dplyr::pull(pop)
+    rescale <- total_pop/site_pop
+    population_total <- population_total |>
+      dplyr::mutate(pop = pop * rescale,
+                    par = par * rescale,
+                    par_pf = par_pf * rescale,
+                    par_pv = par_pv * rescale)
+    population_by_age <- site$population$population_by_age |>
+      dplyr::mutate(pop = pop * rescale,
+                    par = par * rescale,
+                    par_pf = par_pf * rescale,
+                    par_pv = par_pv * rescale)
+  } else if(district == "Mecanhelas") {
+    # calculate what the population needs to be scaled by
+    total_pop <- 269619
+    site_pop <- site_file$population$population_total |>
+      dplyr::filter(year == 2017) |>
+      dplyr::pull(pop)
+    rescale <- total_pop/site_pop
+    population_total <- site$population$population_total |>
+      dplyr::mutate(pop = pop * rescale,
+                    par = par * rescale,
+                    par_pf = par_pf * rescale,
+                    par_pv = par_pv * rescale)
+    population_by_age <- site$population$population_by_age |>
+      dplyr::mutate(pop = pop * rescale,
+                    par = par * rescale,
+                    par_pf = par_pf * rescale,
+                    par_pv = par_pv * rescale)
+  }
+  
   population <- list("population_total" = population_total,
                      "population_by_age" = population_by_age)
   
