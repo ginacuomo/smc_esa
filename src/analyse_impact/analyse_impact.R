@@ -3,8 +3,7 @@ orderly2::orderly_strict_mode()
 orderly2::orderly_parameters(repetitions = 20,
                              district = NULL,
                              country = NULL,
-                             calibrated = NULL,
-                             coverage = 0.8) 
+                             calibrated = NULL) 
 
 orderly2::orderly_dependency(
   "run_smc",
@@ -12,8 +11,7 @@ orderly2::orderly_dependency(
        && parameter:country == this:country
        && parameter:calibrated == this:calibrated 
        && parameter:repetitions == this:repetitions 
-       && parameter:cycles == 4
-       && parameter:coverage == this:coverage)",
+       && parameter:cycles == 4)",
   c(df_smc_4.RDS = "df_smc.RDS"))
 # some dependencies are country specific - only Uganda sims contain multiple cycle comparisons
 if (country == "Uganda") {
@@ -87,7 +85,8 @@ no_smc_summary <- df |>
   dplyr::group_by(year, district, repetition) |>
   dplyr::reframe(total_cases = sum(n_inc_clinical_1_1825),
                  total_severe = sum(n_inc_severe_1_1825),
-                 total_incidence = sum(n_inc_clinical_1_1825/n_age_1_1825)) |>
+                 total_incidence = sum(n_inc_clinical_1_1825/n_age_1_1825), 
+                 total_incidence_severe = sum(n_inc_severe_1_1825)/n_age_1_1825) |>
   dplyr::arrange(year, district, repetition) |>
   dplyr::mutate(cycles = 0)
 smc_summary_4 <- df_smc_4 |> 
@@ -96,7 +95,8 @@ smc_summary_4 <- df_smc_4 |>
   dplyr::group_by(year, district, repetition) |>
   dplyr::reframe(total_cases_smc = sum(n_inc_clinical_1_1825),
                  total_severe_smc = sum(n_inc_severe_1_1825),
-                 total_incidence_smc = sum(n_inc_clinical_1_1825/n_age_1_1825)) |>
+                 total_incidence_smc = sum(n_inc_clinical_1_1825/n_age_1_1825), 
+                 total_incidence_severe_smc = sum(n_inc_severe_1_1825)/n_age_1_1825) |>
   dplyr::arrange(year, district, repetition) |>
   dplyr::mutate(cycles = 4)
 if(country == "Uganda") {
@@ -106,7 +106,8 @@ if(country == "Uganda") {
     dplyr::group_by(year, district, repetition) |>
     dplyr::reframe(total_cases_smc = sum(n_inc_clinical_1_1825),
                    total_severe_smc = sum(n_inc_severe_1_1825),
-                   total_incidence_smc = sum(n_inc_clinical_1_1825/n_age_1_1825)) |>
+                   total_incidence_smc = sum(n_inc_clinical_1_1825/n_age_1_1825), 
+                   total_incidence_severe_smc = sum(n_inc_severe_1_1825)/n_age_1_1825) |>
     dplyr::arrange(year, district, repetition) |>
     dplyr::mutate(cycles = 5)
   smc_summary_6 <- df_smc_6 |> 
@@ -115,7 +116,8 @@ if(country == "Uganda") {
     dplyr::group_by(year, district, repetition) |>
     dplyr::reframe(total_cases_smc = sum(n_inc_clinical_1_1825),
                    total_severe_smc = sum(n_inc_severe_1_1825),
-                   total_incidence_smc = sum(n_inc_clinical_1_1825/n_age_1_1825)) |>
+                   total_incidence_smc = sum(n_inc_clinical_1_1825/n_age_1_1825), 
+                   total_incidence_severe_smc = sum(n_inc_severe_1_1825)/n_age_1_1825) |>
     dplyr::arrange(year, district, repetition) |>
     dplyr::mutate(cycles = 6)
   smc_summary_7 <- df_smc_7 |> 
@@ -124,20 +126,22 @@ if(country == "Uganda") {
     dplyr::group_by(year, district, repetition) |>
     dplyr::reframe(total_cases_smc = sum(n_inc_clinical_1_1825),
                    total_severe_smc = sum(n_inc_severe_1_1825),
-                   total_incidence_smc = sum(n_inc_clinical_1_1825/n_age_1_1825)) |>
+                   total_incidence_smc = sum(n_inc_clinical_1_1825/n_age_1_1825), 
+                   total_incidence_severe_smc = sum(n_inc_severe_1_1825)/n_age_1_1825) |>
     dplyr::arrange(year, district, repetition) |>
     dplyr::mutate(cycles = 7)
 }
 
 #####
 df_comb_4 <- smc_summary_4 |>
-  dplyr::select(district, repetition, total_cases_smc:total_incidence_smc) |>
+  dplyr::select(district, repetition, total_cases_smc:total_incidence_severe_smc) |>
   dplyr::full_join(no_smc_summary, by = c("district", "repetition")) |> # combine with the counterfactual
   dplyr::group_by(district, repetition) |> 
   dplyr::reframe(cases_averted = total_cases - total_cases_smc,
                  severe_averted = total_severe - total_severe_smc,
                  proportion_averted = ((total_cases - total_cases_smc)/total_cases)*100,
-                 per_child = total_incidence - total_incidence_smc) |>
+                 per_child = total_incidence - total_incidence_smc,
+                 per_child_severe = total_incidence_severe - total_incidence_severe_smc) |>
   dplyr::ungroup() |>
   dplyr::group_by(district) |>
   dplyr::reframe(averted_2.5 = quantile_95(cases_averted)[1],
@@ -157,13 +161,14 @@ df_comb <- df_comb_4 |>
   dplyr::arrange(district, cycles)
 if(country == "Uganda") {
   df_comb_5 <- smc_summary_5 |>
-    dplyr::select(district, repetition, total_cases_smc:total_incidence_smc) |>
-    dplyr::full_join(no_smc_summary, by = c("district", "repetition")) |>
+    dplyr::select(district, repetition, total_cases_smc:total_incidence_severe_smc) |>
+    dplyr::full_join(no_smc_summary, by = c("district", "repetition")) |> # combine with the counterfactual
     dplyr::group_by(district, repetition) |> 
     dplyr::reframe(cases_averted = total_cases - total_cases_smc,
                    severe_averted = total_severe - total_severe_smc,
                    proportion_averted = ((total_cases - total_cases_smc)/total_cases)*100,
-                   per_child = total_incidence - total_incidence_smc) |>
+                   per_child = total_incidence - total_incidence_smc,
+                   per_child_severe = total_incidence_severe - total_incidence_severe_smc) |>
     dplyr::ungroup() |>
     dplyr::group_by(district) |>
     dplyr::reframe(averted_2.5 = quantile_95(cases_averted)[1],
@@ -180,13 +185,14 @@ if(country == "Uganda") {
                    per_child_97.5 = quantile_95(per_child)[3]) |>
     dplyr::mutate(cycles = "5 cycles")
   df_comb_6 <- smc_summary_6 |>
-    dplyr::select(district, repetition, total_cases_smc:total_incidence_smc) |>
-    dplyr::full_join(no_smc_summary, by = c("district", "repetition")) |>
+    dplyr::select(district, repetition, total_cases_smc:total_incidence_severe_smc) |>
+    dplyr::full_join(no_smc_summary, by = c("district", "repetition")) |> # combine with the counterfactual
     dplyr::group_by(district, repetition) |> 
     dplyr::reframe(cases_averted = total_cases - total_cases_smc,
                    severe_averted = total_severe - total_severe_smc,
                    proportion_averted = ((total_cases - total_cases_smc)/total_cases)*100,
-                   per_child = total_incidence - total_incidence_smc) |>
+                   per_child = total_incidence - total_incidence_smc,
+                   per_child_severe = total_incidence_severe - total_incidence_severe_smc) |>
     dplyr::ungroup() |>
     dplyr::group_by(district) |>
     dplyr::reframe(averted_2.5 = quantile_95(cases_averted)[1],
@@ -203,13 +209,14 @@ if(country == "Uganda") {
                    per_child_97.5 = quantile_95(per_child)[3]) |>
     dplyr::mutate(cycles = "6 cycles")
   df_comb_7 <- smc_summary_7 |>
-    dplyr::select(district, repetition, total_cases_smc:total_incidence_smc) |>
-    dplyr::full_join(no_smc_summary, by = c("district", "repetition")) |>
+    dplyr::select(district, repetition, total_cases_smc:total_incidence_severe_smc) |>
+    dplyr::full_join(no_smc_summary, by = c("district", "repetition")) |> # combine with the counterfactual
     dplyr::group_by(district, repetition) |> 
     dplyr::reframe(cases_averted = total_cases - total_cases_smc,
                    severe_averted = total_severe - total_severe_smc,
                    proportion_averted = ((total_cases - total_cases_smc)/total_cases)*100,
-                   per_child = total_incidence - total_incidence_smc) |>
+                   per_child = total_incidence - total_incidence_smc,
+                   per_child_severe = total_incidence_severe - total_incidence_severe_smc) |>
     dplyr::ungroup() |>
     dplyr::group_by(district) |>
     dplyr::reframe(averted_2.5 = quantile_95(cases_averted)[1],
