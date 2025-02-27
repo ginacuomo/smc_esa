@@ -1,5 +1,6 @@
 orderly2::orderly_parameters(calibrated = TRUE, repetitions = 20)
-orderly2::orderly_artefact("maps", c("averted.pdf", 
+orderly2::orderly_artefact(description = "maps", 
+                           files = c("averted.pdf", 
                                      "proportion.pdf", 
                                      "per_child.pdf"))
 # pull in the dependency from country_impact
@@ -7,8 +8,8 @@ orderly2::orderly_artefact("maps", c("averted.pdf",
 # repetitions <- this:repetitions
 
 library(data.table)
-orderly2::orderly_shared_resource(shape_file.RDS = "shape_file.RDS")
-orderly2::orderly_shared_resource(districts.RDS = "districts.RDS")
+orderly2::orderly_shared_resource(shape_file.RDS = "uga_shape.RDS")
+orderly2::orderly_shared_resource(districts.RDS = "uga_districts.RDS")
 orderly2::orderly_resource("rainfall_data.RDS")
 
 orderly2::orderly_dependency("country_impact", quote(latest(parameter:calibrated == TRUE &&
@@ -66,7 +67,7 @@ df_comb <- readRDS("smc_summary.RDS") # smc_summary is equivalent to df_comb but
 national_impact <- readRDS("national_impact.RDS")
 no_smc_district <- readRDS("no_smc_district.RDS")
 smc_district <- readRDS("smc_district.RDS")
-district_impact <- readRDS("district_impact.RDS")
+disrict_impact <- readRDS("district_impact.RDS")
 seasonality <- readRDS("seasonality.RDS")
 incremental_district <- readRDS("incremental_district.RDS")
 doses_district <- readRDS("doses_district.RDS")
@@ -128,27 +129,27 @@ prev <- population_prev %>%
   dplyr::select(district, prev)
 
 # combine with the shape file
-burden <- full_join(shape, burden, join_by(ADM2_EN == district))
+burden <- dplyr::full_join(shape, burden, join_by(ADM2_EN == district))
 saveRDS(burden, "burden.RDS")
-averted <- full_join(shape, averted, join_by(ADM2_EN == district))
+averted <- dplyr::full_join(shape, averted, join_by(ADM2_EN == district))
 saveRDS(averted, "averted.RDS")
-severe <- full_join(shape, severe, join_by(ADM2_EN == district))
+severe <- dplyr::full_join(shape, severe, join_by(ADM2_EN == district))
 saveRDS(severe, "severe.RDS")
-proportion <- full_join(shape, proportion, join_by(ADM2_EN == district))
+proportion <- dplyr::full_join(shape, proportion, join_by(ADM2_EN == district))
 saveRDS(proportion, "proportion.RDS")
-per_child <- full_join(shape, per_child, join_by(ADM2_EN == district))
+per_child <- dplyr::full_join(shape, per_child, join_by(ADM2_EN == district))
 saveRDS(per_child, "per_child.RDS")
-seasonality <- full_join(shape, seasonality, join_by(ADM2_EN == district))
+seasonality <- dplyr::full_join(shape, seasonality, join_by(ADM2_EN == district))
 saveRDS(seasonality, "seasonality.RDS")
-incremental <- full_join(shape, incremental_district, join_by(ADM2_EN == district))
+incremental <- dplyr::full_join(shape, incremental_district, join_by(ADM2_EN == district))
 saveRDS(incremental, "incremental.RDS")
-population <- full_join(shape, population, join_by(ADM2_EN == district))
+population <- dplyr::full_join(shape, population, join_by(ADM2_EN == district))
 saveRDS(population, "population.RDS")
-doses <- full_join(shape, doses, join_by(ADM2_EN == district))
+doses <- dplyr::full_join(shape, doses, join_by(ADM2_EN == district))
 saveRDS(doses, "doses.RDS")
-doses_averted <- full_join(shape, doses_averted, join_by(ADM2_EN == district))
+doses_averted <- dplyr::full_join(shape, doses_averted, join_by(ADM2_EN == district))
 saveRDS(doses_averted, "doses_averted.RDS")
-prev <- full_join(shape, prev, join_by(ADM2_EN == district))
+prev <- dplyr::full_join(shape, prev, join_by(ADM2_EN == district))
 saveRDS(prev, "prev.RDS")
 
 ## making plots
@@ -287,7 +288,7 @@ ggsave("population.png", dpi = 300, width = 20, height = 8, units = "cm")
 #                                                              district = rainfall_seasonality$district[i],
 #                                                              months = 3)*100
 # }
-# rainfall_seasonality <-  full_join(shape, rainfall_seasonality, join_by(ADM2_EN == district))
+# rainfall_seasonality <-  dplyr::full_join(shape, rainfall_seasonality, join_by(ADM2_EN == district))
 # ggplot() + geom_sf(data = shape, fill = "grey85", lwd = 0.4) +
 #   geom_sf(data = rainfall_seasonality, 
 #           aes(fill = three_month)) +
